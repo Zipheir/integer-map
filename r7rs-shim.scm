@@ -1,3 +1,0 @@
-(define exact inexact->exact)
-
-
