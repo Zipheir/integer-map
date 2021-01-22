@@ -1,9 +1,31 @@
-;;; FIXME:
+;;; This file implements integers maps as compressed binary radix
+;;; trees (AKA Patricia tries), as described by Chris Okasaki and
+;;; Andrew Gill in "Fast Mergeable Integer Maps" (1998).  Integers
+;;; in big-endian binary encoding are stored in a trie structure
+;;; which allows fast lookup, insertion, and set-theoretical
+;;; operations (union, intersection, etc.)
 ;;;
-;;; * Bitmap compression.  Dense trees waste space at the moment.
+;;; A trie is represented by #f (the empty trie), a leaf, or a branch.
 ;;;
-;;; * Too much duplication of the trie-traversing algorithm
-;;;   with minor variations.  Unify procedures where possible.
+;;; Throughout this code, the empty trie (#f) is always returned
+;;; as an explicit value, not, e.g. as the default value of an
+;;; (and ...) expression, to clarify its use as a trie value.
+
+(define-record-type <leaf>
+  (leaf key value)
+  leaf?
+  (key leaf-key)
+  (value leaf-value))
+
+;; Shorthand for extracting leaf elements.
+(define-syntax let*-leaf
+  (syntax-rules ()
+    ((_ () e1 e2 ...) (begin e1 e2 ...))
+    ((_ (((k v) expr) . binds) . body)
+     (let ((lf expr))
+       (let ((k (leaf-key lf))
+             (v (leaf-value lf)))
+         (let*-leaf binds . body))))))
 
 (define-record-type <branch>
   (branch prefix branching-bit left right)
@@ -80,8 +102,8 @@
 
 (define (trie-contains? trie key)
   (and trie
-       (if (integer? trie)
-           (fx=? key trie)
+       (if (leaf? trie)
+           (fx=? (leaf-key trie) key)
            (let*-branch (((p m l r) trie))
              (and (match-prefix? key p m)
                   (if (zero-bit? key m)
@@ -99,8 +121,8 @@
       (lambda (s t)
         (cond ((not s) t)
               ((not t) s)
-              ((integer? s) (insert t s))
-              ((integer? t) (insert s t))
+              ((leaf? s) (insert t s))
+              ((leaf? t) (insert s t))
               (else (merge-branches s t)))))
      (merge-branches
       (lambda (s t)
@@ -134,7 +156,7 @@
 
 (define (copy-trie trie)
   (and trie
-       (if (integer? trie)
+       (if (leaf? trie)
            trie
            (branch (branch-prefix trie)
                    (branch-branching-bit trie)
