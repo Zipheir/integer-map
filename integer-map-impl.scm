@@ -19,56 +19,33 @@
 ;;; TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 ;;; SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-(define-record-type <iset>
-  (raw-iset trie)
-  iset?
-  (trie iset-trie))
+(define-record-type <imapping>
+  (raw-imapping trie)
+  imapping?
+  (trie imapping-trie))
 
 ;;;; Constructors
 
-(define (iset . args)
-  (list->iset args))
+(define (imapping . args)
+  (error "not implemented"))
 
 (define (pair-or-null? x)
   (or (pair? x) (null? x)))
 
-(define (list->iset ns)
-  (assume (pair-or-null? ns))
-  (raw-iset
-   (fold (lambda (n t)
-           (assume (valid-integer? n))
-           (trie-insert t n))
-         #f
-         ns)))
+(define (alist->imapping as)
+  (assume (pair-or-null? as))
+  (imapping-unfold null? (lambda (p) (values (car p) (cdr p))) cdr))
 
-(define (list->iset! set ns)
-  (assume (iset? set))
-  (assume (pair-or-null? ns))
-  (raw-iset (fold (lambda (n t)
-                    (assume (valid-integer? n))
-                    (trie-insert t n))
-                  (iset-trie set)
-                  ns)))
-
-(define (iset-unfold stop? mapper successor seed)
+(define (imapping-unfold stop? mapper successor seed)
   (assume (procedure? stop?))
   (assume (procedure? mapper))
   (assume (procedure? successor))
   (let lp ((trie #f) (seed seed))
     (if (stop? seed)
-        (raw-iset trie)
-        (let ((n (mapper seed)))
+        (raw-imapping trie)
+        (let-values (((k v) (mapper seed)))
           (assume (valid-integer? n))
-          (lp (trie-insert trie n) (successor seed))))))
-
-(define (make-iset-range low high)
-  (assume (valid-integer? low))
-  (assume (valid-integer? high))
-  (assume (>= high low))
-  (iset-unfold (lambda (i) (= i high))
-               values
-               (lambda (i) (+ i 1))
-               low))
+          (lp (trie-insert trie k v) (successor seed))))))
 
 ;;;; Predicates
 

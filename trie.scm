@@ -28,7 +28,7 @@
          (let*-leaf binds . body))))))
 
 (define-record-type <branch>
-  (branch prefix branching-bit left right)
+  (raw-branch prefix branching-bit left right)
   branch?
   (prefix branch-prefix)
   (branching-bit branch-branching-bit)
@@ -78,21 +78,22 @@
 (define (zero-bit? k m)
   (fxzero? (fxand k m)))
 
-(define (trie-insert trie key)
-  (letrec
-   ((ins
-     (lambda (t)
-       (cond ((not t) key)  ; new leaf
-             ((integer? t)
-              (if (fx=? t key) t (trie-join key 0 key t 0 t)))
-             (else
-              (let*-branch (((p m l r) t))
-                (if (match-prefix? key p m)
-                    (if (zero-bit? key m)
-                        (branch p m (ins l) r)
-                        (branch p m l (ins r)))
-                    (trie-join key 0 key p m t))))))))
-    (ins trie)))
+;; Insert the association (key, value) into trie, replacing any old
+;; association.
+(define (trie-insert trie key value)
+  (trie-insert/combine trie key value (lambda (new _) new)))
+
+;; Insert (key, value) into trie if key doesn't already have an
+;; association.  If it does, add a new association for key and
+;; the result of calling combine on the new and old values.
+(define (trie-insert/combine trie key value combine)
+  (let-values (((trie* _)
+                (trie-search trie
+                             key
+                             (lambda (ins _ig) (ins #t))
+                             (lambda (_key old up _rem)
+                               (up key (combine value old) #t)))))
+    trie*))
 
 (define (trie-join prefix1 mask1 trie1 prefix2 mask2 trie2)
   (let ((m (branching-bit prefix1 mask1 prefix2 mask2)))
@@ -130,23 +131,23 @@
                       ((q n t1 t2) t))
           (cond ((and (fx=? m n) (fx=? p q))
                  ;; the prefixes match, so merge the subtries
-                 (smart-branch p m (merge s1 t1) (merge s2 t2)))
+                 (branch p m (merge s1 t1) (merge s2 t2)))
                 ((and (branching-bit-higher? m n) (match-prefix? q p m))
                  ;; p is a prefix of q, so merge t with a subtrie of s.
                  (if (zero-bit? q m)
-                     (smart-branch p m (merge s1 t) s2)
-                     (smart-branch p m s1 (merge s2 t))))
+                     (branch p m (merge s1 t) s2)
+                     (branch p m s1 (merge s2 t))))
                 ((and (branching-bit-higher? n m) (match-prefix? p q n))
                  ;; q is a prefix of p, so merge s with a subtrie of t.
                  (if (zero-bit? p n)
-                     (smart-branch q n (merge s t1) t2)
-                     (smart-branch q n t1 (merge s t2))))
+                     (branch q n (merge s t1) t2)
+                     (branch q n t1 (merge s t2))))
                 (else    ; the prefixes disagree
                  (trie-join p m s q n t)))))))
     (merge trie1 trie2)))
 
 ;; Construct a branch only if the subtrees are non-empty.
-(define (smart-branch prefix mask trie1 trie2)
+(define (branch prefix mask trie1 trie2)
   (cond ((not trie1) trie2)
         ((not trie2) trie1)
         (else (branch prefix mask trie1 trie2))))
@@ -168,8 +169,8 @@
    ((part
      (lambda (t)
        (cond ((not t) (values #f #f))
-             ((integer? t)
-              (if (pred t)
+             ((leaf? t)
+              (if (pred (leaf-key t) (leaf-value t))
                   (values t #f)
                   (values #f t)))
              (else
@@ -177,27 +178,26 @@
                            ((m) (branch-branching-bit t))
                            ((il ol) (part (branch-left t)))
                            ((ir or) (part (branch-right t))))
-                (values (smart-branch p m il ir)
-                        (smart-branch p m ol or))))))))
+                (values (branch p m il ir) (branch p m ol or))))))))
     (part trie)))
 
 (define (trie-filter pred trie)
   (and trie
-       (if (integer? trie)
-           (and (pred trie) trie)
-           (smart-branch (branch-prefix trie)
-                         (branch-branching-bit trie)
-                         (trie-filter pred (branch-left trie))
-                         (trie-filter pred (branch-right trie))))))
+       (if (leaf? trie)
+           (and (pred (leaf-key trie) (leaf-value trie)) trie)
+           (branch (branch-prefix trie)
+                   (branch-branching-bit trie)
+                   (trie-filter pred (branch-left trie))
+                   (trie-filter pred (branch-right trie))))))
 
 (define (trie-remove pred trie)
   (and trie
        (if (integer? trie)
-           (and (not (pred trie)) trie)
-           (smart-branch (branch-prefix trie)
-                         (branch-branching-bit trie)
-                         (trie-remove pred (branch-left trie))
-                         (trie-remove pred (branch-right trie))))))
+           (and (not (pred (leaf-key trie) (leaf-value trie))) trie)
+           (branch (branch-prefix trie)
+                   (branch-branching-bit trie)
+                   (trie-remove pred (branch-left trie))
+                   (trie-remove pred (branch-right trie))))))
 
 (define (%trie-find-leftmost trie)
   (if (or (not trie) (integer? trie))
@@ -306,8 +306,8 @@
        (let*-branch (((p m l r) t))
          (if (match-prefix? key p m)
              (if (zero-bit? key m)
-                 (smart-branch p m (update l) r)
-                 (smart-branch p m l (update r)))
+                 (branch p m (update l) r)
+                 (branch p m l (update r)))
              t)))))  ; key doesn't occur in t
     (update trie)))
 
@@ -323,8 +323,8 @@
               (let*-branch (((p m l r) t))
                 (if (match-prefix? key p m)
                     (if (zero-bit? key m)
-                        (smart-branch p m (ins l) r)
-                        (smart-branch p m l (ins r)))
+                        (branch p m (ins l) r)
+                        (branch p m l (ins r)))
                     (trie-join key 0 key p m t))))))))
     (ins trie)))
 
@@ -360,7 +360,7 @@
                          (intersect s tl)
                          (intersect s tr))))
                ((fx=? p q)
-                (smart-branch p m (intersect sl tl) (intersect sr tr)))
+                (branch p m (intersect sl tl) (intersect sr tr)))
                (else #f))))))
     (intersect trie1 trie2)))
 
@@ -388,11 +388,11 @@
      (lambda (s t)
        (let*-branch (((p m sl sr) s) ((q n tl tr) t))
          (cond ((and (fx=? m n) (fx=? p q))
-                (smart-branch p m (difference sl tl) (difference sr tr)))
+                (branch p m (difference sl tl) (difference sr tr)))
                ((and (branching-bit-higher? m n) (match-prefix? q p m))
                 (if (zero-bit? q m)
-                    (smart-branch p m (difference sl t) sr)
-                    (smart-branch p m sl (difference sr t))))
+                    (branch p m (difference sl t) sr)
+                    (branch p m sl (difference sr t))))
                ((and (branching-bit-higher? n m) (match-prefix? p q n))
                 (if (zero-bit? p n)
                     (difference s tl)
@@ -491,48 +491,32 @@
 
 ;; Search trie for key, and construct a new trie using the results of
 ;; failure and success.
-;;
-;; Note that the first continuation passed to success may abort the
-;; construction of the new trie and simply insert the new element
-;; into the old one.  This is necessitated by the fact that the new
-;; element may be anything, and thus can't always replace `key'
-;; "in place".
 (define (trie-search trie key failure success)
-  (call-with-current-continuation
-   (lambda (abort)
-     (letrec
-      ((search
-        (lambda (t)
-          (cond ((not t)
-                 (failure (lambda (obj)          ; insert
-                            (values key obj))
-                          (lambda (obj)          ; ignore
-                            (values #f obj))))
-                ((integer? t)
-                 (if (fx=? t key)
-                     (success key
-                              (lambda (elt obj)  ; discard the new trie
-                                (if (eqv? elt key)
-                                    (values key obj)
-                                    (abort (trie-insert
-                                            (trie-delete trie key)
-                                            elt)
-                                           obj)))
-                              (lambda (obj) (values #f obj)))
-                     (failure (lambda (obj)                   ; insert
-                                (values (trie-join key 0 key t 0 t) obj))
-                              (lambda (obj)                   ; ignore
-                                (values #f obj)))))
-                (else
-                 (let*-branch (((p m l r) t))
-                   (if (match-prefix? key p m)
-                       (if (zero-bit? key m)
-                           (let-values (((l* obj) (search l)))
-                             (values (smart-branch p m l* r) obj))
-                           (let-values (((r* obj) (search r)))
-                             (values (smart-branch p m l r*) obj)))
-                       (failure (lambda (obj)                 ; insert
-                                  (values (trie-join key 0 key p m t) obj))
-                                (lambda (obj)                 ; ignore
-                                  (values t obj))))))))))
-       (search trie)))))
+  (let lp ((t trie) (build values))
+    (cond ((not t)
+           (failure (lambda (value obj) (build (raw-leaf key value) obj))
+                    (lambda (obj) (build #f obj))))
+          ((leaf? t)
+           (let*-leaf (((key* value) t))
+             (if (fx=? key key*)
+                 (success (lambda (new-key new-value obj)
+                            (assume (fx=? key new-key)) ; may be changed
+                            (build (raw-leaf key new-value) obj))
+                          (lambda (obj) (build #f obj)))
+                 (failure
+                  (lambda (value obj)
+                    (build (trie-join key 0 (raw-leaf key value) key* 0 t)
+                           obj))
+                  (lambda (obj) (build t obj))))))
+          (else
+           (let*-branch (((p m l r) t))
+             (if (match-prefix? key p m)
+                 (if (zero-bit? key m)
+                     (lp l (lambda (l* obj)
+                             (build (branch p m l* r) obj)))
+                     (lp r (lambda (r* obj)
+                             (build (branch p m l r*) obj))))
+                 (failure (lambda (obj)
+                            (build (trie-join kp 0 key-leaf p m t)
+                                   obj))
+                          (lambda (obj) (build t obj)))))))))
