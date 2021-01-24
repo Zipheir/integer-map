@@ -49,72 +49,61 @@
 
 ;;;; Predicates
 
-(define (iset-contains? set n)
-  (assume (iset? set))
+(define (imapping-contains? imap n)
+  (assume (imapping? set))
   (assume (valid-integer? n))
-  (trie-contains? (iset-trie set) n))
+  (trie-contains? (imapping-trie imap) n))
 
-(define (iset-empty? set)
-  (assume (iset? set))
-  (not (iset-trie set)))
+(define (imapping-empty? imap)
+  (assume (imapping? set))
+  (not (imapping-trie imap)))
 
-(define (iset-disjoint? set1 set2)
-  (assume (iset? set1))
-  (assume (iset? set2))
-  (trie-disjoint? (iset-trie set1) (iset-trie set2)))
+(define (imapping-disjoint? imap1 imap2)
+  (assume (imapping? imap1))
+  (assume (imapping? imap2))
+  (trie-disjoint? (imapping-trie imap1) (imapping-trie imap1)))
 
 ;;;; Accessors
 
-(define (iset-member set elt default)
-  (if (iset-contains? set elt)
-      elt
-      default))
-
-(define (iset-min set)
-  (assume (iset? set))
-  (let ((trie (iset-trie set)))
+(define (imapping-min imap)
+  (assume (imapping? imap))
+  (let ((trie (imapping-trie imap)))
     (if (branch? trie)
         (%trie-find-leftmost
          (if (negative? (branch-branching-bit trie))
              (branch-right trie)
              (branch-left trie)))
-        trie)))  ; #f or leaf
+        (%trie-find-leftmost trie))))
 
-(define (iset-max set)
-  (assume (iset? set))
-  (let ((trie (iset-trie set)))
+(define (imapping-max imap)
+  (assume (imapping? imap))
+  (let ((trie (imapping-trie imap)))
     (if (branch? trie)
         (%trie-find-rightmost
          (if (negative? (branch-branching-bit trie))
              (branch-left trie)
              (branch-right trie)))
-        trie)))  ; #f or leaf
+        (%trie-find-rightmost trie))))
 
 ;;;; Updaters
 
-(define (iset-adjoin set . ns)
-  (assume (iset? set))
-  (if (null? ns)
-      (iset-copy set)
-      (raw-iset
-       (fold (lambda (n t)
-               (assume (valid-integer? n))
-               (trie-insert t n))
-             (iset-trie set)
-             ns))))
-
-(define (iset-adjoin! set . ns)
-  (apply iset-adjoin set ns))
+(define imapping-adjoin
+  (case-lambda
+    ((imap) (imapping-copy imap))
+    ((imap key value)      ; one-assoc fast path
+     (imapping-adjoin/combine imap key value (lambda (_ old) old)))
+    ((imap . ps)
+     (raw-imapping
+      (plist-fold (lambda (k v t)
+                    (trie-insert/combine t k v (lambda (_ old) old)))
+                  (imapping-trie imap)
+                  ps)))))
 
 (define (iset-delete set n)
   (assume (iset? set))
   (assume (valid-integer? n))
   (raw-iset (trie-delete (iset-trie set) n)))
 
-(define (iset-delete! set n) (iset-delete set n))
-
-;; FIXME: Not in the pre-SRFI, but should be added.
-;; Implement this in terms of set difference?
 (define (iset-delete-all set ns)
   (assume (iset? set))
   (assume (or (pair? ns) (null? ns)))

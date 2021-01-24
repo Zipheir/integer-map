@@ -200,14 +200,14 @@
                    (trie-remove pred (branch-right trie))))))
 
 (define (%trie-find-leftmost trie)
-  (if (or (not trie) (integer? trie))
-      trie
-      (%trie-find-leftmost (branch-left trie))))
+  (cond ((not trie) (nothing))
+        ((leaf? trie) (just (leaf-key trie) (leaf-value trie)))
+        (else (%trie-find-leftmost (branch-left trie)))))
 
 (define (%trie-find-rightmost trie)
-  (if (or (not trie) (integer? trie))
-      trie
-      (%trie-find-rightmost (branch-right trie))))
+  (cond ((not trie) (nothing))
+        ((leaf? trie) (just (leaf-key trie) (leaf-value trie)))
+        (else (%trie-find-rightmost (branch-right trie)))))
 
 ;;;; Comparisons
 
