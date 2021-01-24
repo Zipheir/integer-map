@@ -19,6 +19,20 @@
 ;;; TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 ;;; SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+;;;; Utility
+
+(define (plist-fold proc nil ps)
+  (let loop ((b nil) (ps ps))
+    (match ps
+      (() b)
+      ((k v . ps*)
+       (loop (proc k v b) ps*)))))
+
+(define (first x _) x)
+(define (second _ y) y)
+
+;;;; Type
+
 (define-record-type <imapping>
   (raw-imapping trie)
   imapping?
@@ -27,7 +41,11 @@
 ;;;; Constructors
 
 (define (imapping . args)
-  (error "not implemented"))
+  (raw-imapping
+    (plist-fold (lambda (k v trie)
+                  (trie-insert/combine trie k v second))
+                #f
+                args)))
 
 (define (pair-or-null? x)
   (or (pair? x) (null? x)))

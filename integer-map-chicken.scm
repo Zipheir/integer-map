@@ -4,7 +4,8 @@
           (chicken base)
           (only (srfi 1) fold every)
           (srfi 143)
-          (srfi 145))
+          (srfi 145)
+          (matchable))
 
   ;; R7RS shim
   (define exact inexact->exact)
