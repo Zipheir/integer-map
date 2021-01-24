@@ -109,11 +109,11 @@
   (case-lambda
     ((imap) (imapping-copy imap))
     ((imap key value)      ; one-assoc fast path
-     (imapping-adjoin/combine imap key value (lambda (_ old) old)))
+     (imapping-adjoin/combine imap key value second))
     ((imap . ps)
      (raw-imapping
       (plist-fold (lambda (k v t)
-                    (trie-insert/combine t k v (lambda (_ old) old)))
+                    (trie-insert/combine t k v second))
                   (imapping-trie imap)
                   ps)))))
 
