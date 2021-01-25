@@ -221,36 +221,41 @@
 
 ;;;; Comparisons
 
-(define (trie=? trie1 trie2)
-  (cond ((not (or trie1 trie2)) #t)
-        ((and (integer? trie1) (integer? trie2)) (fx=? trie1 trie2))
-        ((and (branch? trie1) (branch? trie2))
-         (let*-branch (((p m l1 r1) trie1) ((q n l2 r2) trie2))
-           (and (fx=? m n) (fx=? p q) (trie=? l1 l2) (trie=? r1 r2))))
-        (else #f)))
+(define (trie=? comp trie1 trie2)
+  (let loop ((s trie1) (t trie2))
+    (cond ((not (or s t)) #t)
+          ((leaf? s)
+           (and (leaf? t)
+                (fx=? (leaf-key s) (leaf-key t))
+                (=? comp (leaf-value s) (leaf-value t))))
+          ((and (branch? s) (branch? t))
+           (let*-branch (((p m l1 r1) s) ((q n l2 r2) t))
+             (and (fx=? m n) (fx=? p q) (loop l1 l2) (loop r1 r2))))
+          (else #f))))
 
 ;; Returns the symbol 'less' if trie1 is a proper subset of trie2,
 ;; 'equal' if they are the same, and 'greater' otherwise.  NB that
 ;; disjoint sets will compare as greater.
-;;
-;; FIXME: Simplify this.
-(define (trie-subset-compare trie1 trie2)
+(define (trie-subset-compare comp trie1 trie2)
   (letrec
    ((compare
      (lambda (s t)
        (cond ((eqv? s t) 'equal)
              ((not s) 'less)
              ((not t) 'greater)  ; disjoint
-             ((and (integer? s) (integer? t))
-              (if (fx=? s t) 'equal 'greater))
-             ((integer? s)             ; leaf / branch
+             ((and (leaf? s) (leaf? t))
+              (let*-leaf (((sk sv) s)) (((tk tv) t))
+                (if (and (fx=? sk tk) (=? comp sv tv))
+                    'equal
+                    'greater)))
+             ((leaf? s)             ; leaf / branch
               (let*-branch (((p m l r) t))
-                (if (match-prefix? s p m)
-                    (let ((res (compare s (if (zero-bit? s m)
-                                              (branch-left t)
-                                              (branch-right t)))))
-                      (if (eqv? res 'greater) res 'less)))))
-             ((integer? t) 'greater)   ; branch / leaf
+                (let ((k (leaf-key s)))
+                  (if (match-prefix? k p m)
+                      (case (compare s (if (zero-bit? k m) l r))
+                        ((greater) 'greater)
+                        (else 'less))))))
+             ((leaf? t) 'greater)   ; branch / leaf
              (else (compare-branches s t)))))
     (compare-branches
      (lambda (s t)
@@ -273,8 +278,8 @@
                (else 'greater))))))  ; disjoint
     (compare trie1 trie2)))
 
-(define (trie-proper-subset? trie1 trie2)
-  (eqv? (trie-subset-compare trie1 trie2) 'less))
+(define (trie-proper-subset? comp trie1 trie2)
+  (eqv? (trie-subset-compare comp trie1 trie2) 'less))
 
 (define (trie-disjoint? trie1 trie2)
   (letrec

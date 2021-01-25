@@ -280,67 +280,66 @@
 
 ;;;; Comparison
 
-(define (iset=? set1 set2 . sets)
-  (assume (iset? set1))
-  (let ((iset-eq1 (lambda (set)
-                    (assume (iset? set))
-                    (or (eqv? set1 set)
-                        (trie=? (iset-trie set1) (iset-trie set))))))
-    (and (iset-eq1 set2)
-         (or (null? sets)
-             (every iset-eq1 sets)))))
+(define (imapping=? comp imap1 imap2 . imaps)
+  (assume (comparator? comp))
+  (assume (iimap? imap1))
+  (let ((imap-eq1 (lambda (imap)
+                    (assume (imap? imap))
+                    (or (eqv? imap1 imap)
+                        (trie=? comp
+                                (imapping-trie imap1)
+                                (imapping-trie imap))))))
+    (and (imap-eq1 imap2)
+         (or (null? imaps)
+             (every imap-eq1 imaps)))))
 
-(define iset<?
-  (case-lambda
-    ((set)
-     (assume (iset? set))
-     #t)
-    ((set1 set2 . sets)
-     (assume (iset? set1))
-     (assume (iset? set2))
-     (let lp ((t1 (iset-trie set1)) (t2 (iset-trie set2)) (sets sets))
-       (and (trie-proper-subset? t1 t2)
-            (or (null? sets)
-		(lp t2 (iset-trie (car sets)) (cdr sets))))))))
+(define (imapping<? comp imap1 imap2 . imaps)
+  (assume (comparator? comp))
+  (assume (iset? imap1))
+  (assume (iset? imap2))
+  (let lp ((t1 (imapping-trie imap1))
+           (t2 (imapping-trie imap2))
+           (imaps imaps))
+    (and (trie-proper-subset? comp t1 t2)
+         (match imaps
+           (() #t)
+           ((m . imaps*) (lp t2 (imapping-trie m) imaps*))))))
 
-(define iset>?
-  (case-lambda
-    ((set)
-     (assume (iset? set))
-     #t)
-    ((set1 set2 . sets)
-     (assume (iset? set1))
-     (assume (iset? set2))
-     (let lp ((t1 (iset-trie set1)) (t2 (iset-trie set2)) (sets sets))
-       (and (trie-proper-subset? t2 t1)
-            (or (null? sets)
-	        (lp t2 (iset-trie (car sets)) (cdr sets))))))))
+(define (iset>? comp imap1 imap2 . imaps)
+  (assume (comparator? comp))
+  (assume (iset? imap1))
+  (assume (iset? imap2))
+  (let lp ((t1 (imapping-trie imap1))
+           (t2 (imapping-trie imap2))
+           (imaps imaps))
+    (and (trie-proper-subset? comp t2 t1)
+         (match imaps
+           (() #t)
+           ((m . imaps*) (lp t2 (imapping-trie m) imaps*))))))
 
-(define iset<=?
-  (case-lambda
-    ((set)
-     (assume (iset? set))
-     #t)
-    ((set1 set2 . sets)
-     (assume (iset? set1))
-     (assume (iset? set2))
-     (let lp ((t1 (iset-trie set1)) (t2 (iset-trie set2)) (sets sets))
-       (and (memv (trie-subset-compare t1 t2) '(less equal))
-            (or (null? sets)
-		(lp t2 (iset-trie (car sets)) (cdr sets))))))))
+(define (iset<=? comp imap1 imap2 . imaps)
+  (assume (comparator? comp))
+  (assume (iset? imap1))
+  (assume (iset? imap2))
+  (let lp ((t1 (imapping-trie imap1))
+           (t2 (imapping-trie imap2))
+           (imaps imaps))
+    (and (memv (trie-subset-compare comp t1 t2) '(less equal))
+         (match imaps
+           (() #t)
+           ((m . imaps*) (lp t2 (iset-trie m) imaps*))))))
 
-(define iset>=?
-  (case-lambda
-    ((set)
-     (assume (iset? set))
-     #t)
-    ((set1 set2 . sets)
-     (assume (iset? set1))
-     (assume (iset? set2))
-     (let lp ((t1 (iset-trie set1)) (t2 (iset-trie set2)) (sets sets))
-       (and (memv (trie-subset-compare t1 t2) '(greater equal))
-	    (or (null? sets)
-		(lp t2 (iset-trie (car sets)) (cdr sets))))))))
+(define (iset>=? comp imap1 imap2 . imaps)
+  (assume (comparator? comp))
+  (assume (iset? imap1))
+  (assume (iset? imap2))
+  (let lp ((t1 (imapping-trie imap1))
+           (t2 (imapping-trie imap2))
+           (imaps imaps))
+    (and (memv (trie-subset-compare comp t1 t2) '(greater equal))
+         (match imaps
+           (() #t)
+           ((m . imaps*) (lp t2 (iset-trie m) imaps*))))))
 
 ;;;; Set theory operations
 

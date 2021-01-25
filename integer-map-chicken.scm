@@ -3,6 +3,7 @@
   (import scheme
           (chicken base)
           (only (srfi 1) fold every)
+          (only (srfi 128) comparator? =?)
           (srfi 143)
           (srfi 145)
           (matchable))

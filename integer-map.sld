@@ -2,6 +2,7 @@
   (import (scheme base)
           (scheme case-lambda)
           (only (srfi 1) fold every)
+          (only (srfi 128) comparator? =?)
           (srfi 143))
 
   (cond-expand
