@@ -117,6 +117,28 @@
                   (imapping-trie imap)
                   ps)))))
 
+(define (imapping-adjust imap key proc)
+  (assume (procedure? proc))
+  (let-values (((imap* _)
+                (imapping-search
+                 imap
+                 key
+                 (lambda (_ins ignore) (ignore #t))
+                 (lambda (_k v update _rem)
+                   (update (proc v) #t)))))
+    imap*))
+
+(define (imapping-adjust/key imap key proc)
+  (assume (procedure? proc))
+  (let-values (((imap* _)
+                (imapping-search
+                 imap
+                 key
+                 (lambda (_ins ignore) (ignore #t))
+                 (lambda (k v update _rem)
+                   (update (proc k v) #t)))))
+    imap*))
+
 (define (iset-delete set n)
   (assume (iset? set))
   (assume (valid-integer? n))
