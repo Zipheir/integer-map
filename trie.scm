@@ -11,6 +11,11 @@
 ;;; as an explicit value, not, e.g. as the default value of an
 ;;; (and ...) expression, to clarify its use as a trie value.
 
+;;;; Utility
+
+(define (swap-args proc)
+  (lambda (x y) (proc y x)))
+
 (define-record-type <leaf>
   (leaf key value)
   leaf?
@@ -116,14 +121,19 @@
       (negative? mask1)
       (fx>? mask1 mask2)))
 
-(define (trie-merge insert trie1 trie2)
+;; Merge two tries.  `combine' is used to merge duplicated mappings.
+(define (trie-merge combine trie1 trie2)
   (letrec
     ((merge
       (lambda (s t)
         (cond ((not s) t)
               ((not t) s)
-              ((leaf? s) (insert t s))
-              ((leaf? t) (insert s t))
+              ((leaf? s)
+               (let*-leaf (((k v) s))
+                 (trie-insert/combine t k v combine)))
+              ((leaf? t)
+               (let*-leaf (((k v) t))
+                 (trie-insert/combine s k v (swap-args combine))))
               (else (merge-branches s t)))))
      (merge-branches
       (lambda (s t)
