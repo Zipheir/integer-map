@@ -281,17 +281,18 @@
 (define (trie-proper-subset? comp trie1 trie2)
   (eqv? (trie-subset-compare comp trie1 trie2) 'less))
 
+;; Two tries are disjoint if they have no keys in common.
 (define (trie-disjoint? trie1 trie2)
   (letrec
    ((disjoint?
      (lambda (s t)
        (or (not s)
            (not t)
-           (cond ((integer? s)
-                  (if (integer? t)
-                      (not (fx=? s t))
+           (cond ((leaf? s)
+                  (if (leaf? t)
+                      (not (fx=? (leaf-key s) (leaf-key t)))
                       (not (trie-contains? t s))))
-                 ((integer? t) (not (trie-contains? s t)))
+                 ((leaf? t) (not (trie-contains? s t)))
                  (else (branches-disjoint? s t))))))
     (branches-disjoint?
      (lambda (s t)
