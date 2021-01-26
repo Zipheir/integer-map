@@ -31,6 +31,9 @@
 (define (first x _) x)
 (define (second _ y) y)
 
+(define (constantly x)
+  (lambda (_) x))
+
 ;;;; Type
 
 (define-record-type <imapping>
@@ -179,27 +182,43 @@
 ;; mapping if `imap' is empty.
 (define (imapping-delete-min imap)
   (assume (imapping? imap))
+  (imapping-update-min imap (constantly (nothing))))
+
+;; Call success on the element of `imap' with the least key and
+;; use the value, a Maybe, to update the mapping.
+(define (imapping-update-min imap success)
+  (assume (imapping? imap))
+  (assume (procedure? success))
   (raw-imapping
-   (%trie-delete-leftmost
+   (%trie-update-min
     (let ((trie (imapping-trie imap)))
       (if (branch? trie)
           (if (negative? (branch-branching-bit trie))
               (branch-right trie)
               (branch-left trie))
-          trie)))))
+          trie))
+    success)))
 
 ;; Delete the element with the greatest key, or return an empty
 ;; mapping if `imap' is empty.
 (define (imapping-delete-max imap)
   (assume (imapping? imap))
+  (imapping-update-max imap (constantly (nothing))))
+
+;; Call success on the element of `imap' with the greatest key and
+;; use the value, a Maybe, to update the mapping.
+(define (imapping-update-max imap success)
+  (assume (imapping? imap))
+  (assume (procedure? success))
   (raw-imapping
-   (%trie-delete-rightmost
+   (%trie-update-max
     (let ((trie (imapping-trie imap)))
       (if (branch? trie)
           (if (negative? (branch-branching-bit trie))
               (branch-left trie)
               (branch-right trie))
-          trie)))))
+          trie))
+    success)))
 
 ;;;; The whole iset
 

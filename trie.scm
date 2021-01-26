@@ -214,24 +214,42 @@
         ((leaf? trie) (just (leaf-key trie) (leaf-value trie)))
         (else (%trie-find-leftmost (branch-left trie)))))
 
-;; Delete the leftmost leaf, or return an empty trie if `trie'
-;; is empty.
-(define (%trie-delete-leftmost trie)
-  (if (or (not trie) (leaf? trie))
-      #f
-      (let*-branch (((p m l r) trie))
-        (branch p m (%trie-delete-leftmost l) r))))
+;; Call success on the value of the leftmost leaf and use the resulting
+;; Maybe to update the value.
+(define (%trie-update-min trie success)
+  (letrec
+   ((traverse
+     (lambda (t)
+       (cond ((not t) #f)
+             ((leaf? t)
+              (maybe-ref (success (leaf-value t))
+                         (lambda () #f)
+                         (lambda (v) (leaf (leaf-key t) v))))
+             (else
+              (let*-branch (((p m l r) t))
+                (branch p m (traverse l) r)))))))
+    (traverse trie)))
 
 (define (%trie-find-rightmost trie)
   (cond ((not trie) (nothing))
         ((leaf? trie) (just (leaf-key trie) (leaf-value trie)))
         (else (%trie-find-rightmost (branch-right trie)))))
 
-(define (%trie-delete-rightmost trie)
-  (if (or (not trie) (leaf? trie))
-      #f
-      (let*-branch (((p m l r) trie))
-        (branch p m l (%trie-delete-righmost r)))))
+;; Call success on the value of the greatest-keyed leaf and use the
+;; resulting Maybe to update the value.
+(define (%trie-update-max trie success)
+  (letrec
+   ((traverse
+     (lambda (t)
+       (cond ((not t) #f)
+             ((leaf? t)
+              (maybe-ref (success (leaf-value t))
+                         (lambda () #f)
+                         (lambda (v) (leaf (leaf-key t) v))))
+             (else
+              (let*-branch (((p m l r) t))
+                (branch p m l (traverse r))))))))
+    (traverse trie)))
 
 ;;;; Comparisons
 

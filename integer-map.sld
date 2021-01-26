@@ -17,6 +17,7 @@
 
   (export
    imapping-delete-min imapping-delete-max
+   imapping-update-min imapping-update-max
    )
 
   (include "trie.scm")

@@ -1,6 +1,7 @@
 (module (integer-map)
   (
    imapping-delete-min imapping-delete-max
+   imapping-update-min imapping-update-max
    )
 
   (import scheme
