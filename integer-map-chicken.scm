@@ -2,6 +2,7 @@
   (
    imapping-delete-min imapping-delete-max
    imapping-update-min imapping-update-max
+   imapping-update-min/key imapping-update-max/key
    )
 
   (import scheme

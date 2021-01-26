@@ -32,7 +32,7 @@
 (define (second _ y) y)
 
 (define (constantly x)
-  (lambda (_) x))
+  (lambda _ x))
 
 ;;;; Type
 
@@ -181,16 +181,20 @@
 ;; Delete the element with the least key, or return an empty
 ;; mapping if `imap' is empty.
 (define (imapping-delete-min imap)
-  (assume (imapping? imap))
-  (imapping-update-min imap (constantly (nothing))))
+  (imapping-update-min/key imap (constantly (nothing))))
 
-;; Call success on the element of `imap' with the least key and
-;; use the value, a Maybe, to update the mapping.
+;; Call success on the value of the element of `imap' with the least
+;; key and use the value, a Maybe, to update the mapping.
 (define (imapping-update-min imap success)
+  (imapping-update-min/key imap (lambda (_ v) (success v))))
+
+;; Call success on the least key and corresponding value of `imap'
+;; and use the value, a Maybe, to update the mapping.
+(define (imapping-update-min/key imap success)
   (assume (imapping? imap))
   (assume (procedure? success))
   (raw-imapping
-   (%trie-update-min
+   (%trie-update-min/key
     (let ((trie (imapping-trie imap)))
       (if (branch? trie)
           (if (negative? (branch-branching-bit trie))
@@ -202,16 +206,20 @@
 ;; Delete the element with the greatest key, or return an empty
 ;; mapping if `imap' is empty.
 (define (imapping-delete-max imap)
-  (assume (imapping? imap))
-  (imapping-update-max imap (constantly (nothing))))
+  (imapping-update-max/key imap (constantly (nothing))))
 
-;; Call success on the element of `imap' with the greatest key and
-;; use the value, a Maybe, to update the mapping.
+;; Call success on the value of the element of `imap' with the
+;; greatest key and use the value, a Maybe, to update the mapping.
 (define (imapping-update-max imap success)
+  (imapping-update-max/key imap (lambda (_ v) (success v))))
+
+;; Call success on the greatest key and corresponding value of `imap'
+;; and use the value, a Maybe, to update the mapping.
+(define (imapping-update-max/key imap success)
   (assume (imapping? imap))
   (assume (procedure? success))
   (raw-imapping
-   (%trie-update-max
+   (%trie-update-max/key
     (let ((trie (imapping-trie imap)))
       (if (branch? trie)
           (if (negative? (branch-branching-bit trie))

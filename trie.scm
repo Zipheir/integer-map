@@ -214,17 +214,18 @@
         ((leaf? trie) (just (leaf-key trie) (leaf-value trie)))
         (else (%trie-find-leftmost (branch-left trie)))))
 
-;; Call success on the value of the leftmost leaf and use the resulting
-;; Maybe to update the value.
-(define (%trie-update-min trie success)
+;; Call success on the key and value of the leftmost leaf and use
+;; the resulting Maybe to update the value.
+(define (%trie-update-min/key trie success)
   (letrec
    ((traverse
      (lambda (t)
        (cond ((not t) #f)
              ((leaf? t)
-              (maybe-ref (success (leaf-value t))
-                         (lambda () #f)
-                         (lambda (v) (leaf (leaf-key t) v))))
+              (let*-leaf (((k v) t))
+                (maybe-ref (success k v)
+                           (lambda () #f)
+                           (lambda (v*) (leaf k v*)))))
              (else
               (let*-branch (((p m l r) t))
                 (branch p m (traverse l) r)))))))
@@ -235,17 +236,18 @@
         ((leaf? trie) (just (leaf-key trie) (leaf-value trie)))
         (else (%trie-find-rightmost (branch-right trie)))))
 
-;; Call success on the value of the greatest-keyed leaf and use the
-;; resulting Maybe to update the value.
-(define (%trie-update-max trie success)
+;; Call success on the key and value of the greatest-keyed leaf
+;; and use the resulting Maybe to update the value.
+(define (%trie-update-max/key trie success)
   (letrec
    ((traverse
      (lambda (t)
        (cond ((not t) #f)
              ((leaf? t)
-              (maybe-ref (success (leaf-value t))
-                         (lambda () #f)
-                         (lambda (v) (leaf (leaf-key t) v))))
+              (let*-leaf (((k v) t))
+                (maybe-ref (success k v)
+                           (lambda () #f)
+                           (lambda (v*) (leaf k v*)))))
              (else
               (let*-branch (((p m l r) t))
                 (branch p m l (traverse r))))))))
