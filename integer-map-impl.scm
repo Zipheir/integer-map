@@ -175,6 +175,32 @@
 (define (iset-search! set elt failure success)
   (iset-search set elt failure success))
 
+;; Delete the element with the least key, or return an empty
+;; mapping if `imap' is empty.
+(define (imapping-delete-min imap)
+  (assume (imapping? imap))
+  (raw-imapping
+   (%trie-delete-leftmost
+    (let ((trie (imapping-trie imap)))
+      (if (branch? trie)
+          (if (negative? (branch-branching-bit trie))
+              (branch-right trie)
+              (branch-left trie))
+          trie)))))
+
+;; Delete the element with the greatest key, or return an empty
+;; mapping if `imap' is empty.
+(define (imapping-delete-max imap)
+  (assume (imapping? imap))
+  (raw-imapping
+   (%trie-delete-rightmost
+    (let ((trie (imapping-trie imap)))
+      (if (branch? trie)
+          (if (negative? (branch-branching-bit trie))
+              (branch-left trie)
+              (branch-right trie))
+          trie)))))
+
 ;;;; The whole iset
 
 (define (iset-size set)

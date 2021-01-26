@@ -1,4 +1,7 @@
 (module (integer-map)
+  (
+   imapping-delete-min imapping-delete-max
+   )
 
   (import scheme
           (chicken base)

@@ -214,10 +214,24 @@
         ((leaf? trie) (just (leaf-key trie) (leaf-value trie)))
         (else (%trie-find-leftmost (branch-left trie)))))
 
+;; Delete the leftmost leaf, or return an empty trie if `trie'
+;; is empty.
+(define (%trie-delete-leftmost trie)
+  (if (or (not trie) (leaf? trie))
+      #f
+      (let*-branch (((p m l r) trie))
+        (branch p m (%trie-delete-leftmost l) r))))
+
 (define (%trie-find-rightmost trie)
   (cond ((not trie) (nothing))
         ((leaf? trie) (just (leaf-key trie) (leaf-value trie)))
         (else (%trie-find-rightmost (branch-right trie)))))
+
+(define (%trie-delete-rightmost trie)
+  (if (or (not trie) (leaf? trie))
+      #f
+      (let*-branch (((p m l r) trie))
+        (branch p m l (%trie-delete-righmost r)))))
 
 ;;;; Comparisons
 

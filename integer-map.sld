@@ -16,7 +16,8 @@
            (or expr (car 0))))))))
 
   (export
-          )
+   imapping-delete-min imapping-delete-max
+   )
 
   (include "trie.scm")
   (include "integer-map-impl.scm"))
