@@ -106,10 +106,12 @@
         (branch (mask prefix1 m) m trie1 trie2)
         (branch (mask prefix1 m) m trie2 trie1))))
 
-(define (trie-contains? trie key)
+;; Return the value associated with key in trie; if there is
+;; none, return #f.
+(define (trie-assoc trie key)
   (and trie
        (if (leaf? trie)
-           (fx=? (leaf-key trie) key)
+           (and (fx=? (leaf-key trie) key) (leaf-value trie))
            (let*-branch (((p m l r) trie))
              (and (match-prefix? key p m)
                   (if (zero-bit? key m)

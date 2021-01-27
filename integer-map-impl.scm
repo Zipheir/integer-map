@@ -73,7 +73,7 @@
 (define (imapping-contains? imap n)
   (assume (imapping? set))
   (assume (valid-integer? n))
-  (trie-contains? (imapping-trie imap) n))
+  (and (trie-assoc (imapping-trie imap) n) #t))
 
 (define (imapping-empty? imap)
   (assume (imapping? set))
@@ -85,6 +85,14 @@
   (trie-disjoint? (imapping-trie imap1) (imapping-trie imap1)))
 
 ;;;; Accessors
+
+(define (imapping-lookup imap key)
+  (assume (imapping? imap))
+  (assume (valid-integer? key))
+  (truth->maybe (trie-assoc (imapping-trie imap) key)))
+
+(define (imapping-lookup/default imap key default)
+  (maybe-ref/default (imapping-lookup imap key) default))
 
 (define (imapping-min imap)
   (assume (imapping? imap))
