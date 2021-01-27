@@ -351,7 +351,7 @@
    ((update
      (lambda (t)
        (cond ((not t) #f)
-             ((integer? t) (if (fx=? t key) #f t))
+             ((leaf? t) (if (fx=? (leaf-key t) key) #f t))
              (else (update-branch t)))))
     (update-branch
      (lambda (t)

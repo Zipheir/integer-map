@@ -150,19 +150,20 @@
                    (update (proc k v) #t)))))
     imap*))
 
-(define (iset-delete set n)
-  (assume (iset? set))
-  (assume (valid-integer? n))
-  (raw-iset (trie-delete (iset-trie set) n)))
+(define imapping-delete
+  (case-lambda
+    ((imap key)      ; fast path
+     (assume (imapping? imap))
+     (assume (valid-integer? key))
+     (raw-imapping (trie-delete (imapping-trie imap) key)))
+    ((imap . keys)
+     (imapping-delete-all imap keys))))
 
-(define (iset-delete-all set ns)
-  (assume (iset? set))
-  (assume (or (pair? ns) (null? ns)))
-  (raw-iset (trie-remove (lambda (m) (member m ns fx=?))
-                         (iset-trie set))))
-
-(define (iset-delete-all! set ns)
-  (iset-delete-all set ns))
+;; FIXME: Uses keys as an lset, which is inefficient.
+(define (imapping-delete-all imap keys)
+  (assume (imapping? imap))
+  (assume (or (pair? keys) (null? keys)))
+  (imapping-filter (lambda (k _) (memv k keys)) imap))
 
 ;; Thanks to the authors of SRFI 146 for providing examples
 ;; of how to implement this shoggoth.
