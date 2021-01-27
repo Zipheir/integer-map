@@ -215,13 +215,13 @@
           trie))
     success)))
 
-;;;; The whole iset
+;;;; The whole imapping
 
-(define (iset-size set)
-  (assume (iset? set))
-  (let lp ((acc 0) (t (iset-trie set)))
+(define (imapping-size imap)
+  (assume (imapping? imap))
+  (let lp ((acc 0) (t (imapping-trie imap)))
     (cond ((not t) acc)
-          ((integer? t) (+ acc 1))
+          ((leaf? t) (+ acc 1))
           (else
            (lp (lp acc (branch-left t)) (branch-right t))))))
 
