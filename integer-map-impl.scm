@@ -165,28 +165,6 @@
   (assume (or (pair? keys) (null? keys)))
   (imapping-filter (lambda (k _) (memv k keys)) imap))
 
-;; Thanks to the authors of SRFI 146 for providing examples
-;; of how to implement this shoggoth.
-(define (iset-search set elt failure success)
-  (assume (iset? set))
-  (assume (valid-integer? elt))
-  (assume (procedure? failure))
-  (assume (procedure? success))
-  (call-with-current-continuation
-   (lambda (return)
-     (let-values (((trie obj)
-                   (trie-search (iset-trie set)
-                                elt
-                                (lambda (insert ignore)
-                                  (failure insert
-                                           (lambda (obj)
-                                             (return set obj))))
-                                success)))
-       (values (raw-iset trie) obj)))))
-
-(define (iset-search! set elt failure success)
-  (iset-search set elt failure success))
-
 ;; Delete the element with the least key, or return an empty
 ;; mapping if `imap' is empty.
 (define (imapping-delete-min imap)
