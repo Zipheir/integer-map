@@ -25,6 +25,7 @@
    imapping-any? imapping-every?
    imapping-keys imapping-values
    imapping-fold-left imapping-fold-right
+   imapping-fold-left/key imapping-fold-right/key
    imapping-map imapping-map/key
    )
 
