@@ -227,28 +227,28 @@
 
 (define (imapping-count pred imap)
   (assume (procedure? pred))
-  (imapping-fold (lambda (n acc)
-                   (if (pred n) (+ 1 acc) acc))
+  (imapping-fold (lambda (k v acc)
+                   (if (pred k v) (+ 1 acc) acc))
                  0
                  imap))
 
-(define (iset-any? pred set)
+(define (imapping-any? pred imap)
   (assume (procedure? pred))
   (call-with-current-continuation
    (lambda (return)
-     (iset-fold (lambda (n _)
-                  (and (pred n) (return #t)))
-                #f
-                set))))
+     (imapping-fold (lambda (k v _)
+                      (and (pred k v) (return #t)))
+                    #f
+                    imap))))
 
-(define (iset-every? pred set)
+(define (imapping-every? pred imap)
   (assume (procedure? pred))
   (call-with-current-continuation
    (lambda (return)
-     (iset-fold (lambda (n _)
-                  (or (pred n) (return #f)))
-                #t
-                set))))
+     (imapping-fold (lambda (k v _)
+                      (or (pred k v) (return #f)))
+                    #t
+                    imap))))
 
 ;;;; Mapping and folding
 

@@ -5,6 +5,7 @@
    imapping-update-min/key imapping-update-max/key
    imapping-size
    imapping-count
+   imapping-any? imapping-every?
    )
 
   (import scheme
