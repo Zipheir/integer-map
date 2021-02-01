@@ -250,6 +250,16 @@
                     #t
                     imap))))
 
+(define (imapping-keys imap)
+  (imapping-fold-right (lambda (k _ ks) (cons k ks))
+                       '()
+                       imap))
+
+(define (imapping-values imap)
+  (imapping-fold-right (lambda (_ v vs) (cons v vs))
+                       '()
+                       imap))
+
 ;;;; Mapping and folding
 
 (define (iset-map proc set)

@@ -23,6 +23,7 @@
    imapping-size
    imapping-count
    imapping-any? imapping-every?
+   imapping-keys imapping-values
    )
 
   (include "trie.scm")

@@ -6,6 +6,7 @@
    imapping-size
    imapping-count
    imapping-any? imapping-every?
+   imapping-keys imapping-values
    )
 
   (import scheme
