@@ -20,6 +20,7 @@
    imapping-update-min imapping-update-max
    imapping-update-min/key imapping-update-max/key
    imapping-size
+   imapping-count
    )
 
   (include "trie.scm")

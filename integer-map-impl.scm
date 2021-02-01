@@ -225,12 +225,12 @@
           (else
            (lp (lp acc (branch-left t)) (branch-right t))))))
 
-(define (iset-count pred set)
+(define (imapping-count pred imap)
   (assume (procedure? pred))
-  (iset-fold (lambda (n acc)
-               (if (pred n) (+ 1 acc) acc))
-             0
-             set))
+  (imapping-fold (lambda (n acc)
+                   (if (pred n) (+ 1 acc) acc))
+                 0
+                 imap))
 
 (define (iset-any? pred set)
   (assume (procedure? pred))
