@@ -13,6 +13,7 @@
           (only (srfi 128) comparator? =?)
           (srfi 143)
           (srfi 145)
+          (srfi 189)
           (matchable))
 
   ;; R7RS shim
