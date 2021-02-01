@@ -193,6 +193,26 @@
                 (values (branch p m il ir) (branch p m ol or))))))))
     (part trie)))
 
+(define (trie-fold-left proc nil trie)
+  (letrec
+   ((cata
+     (lambda (b t)
+       (cond ((not t) b)
+             ((leaf? t) (proc (leaf-key t) (leaf-value t) b))
+             (else
+              (cata (cata b (branch-left t)) (branch-right t)))))))
+    (cata nil trie)))
+
+(define (trie-fold-right proc nil trie)
+  (letrec
+   ((cata
+     (lambda (b t)
+       (cond ((not t) b)
+             ((leaf? t) (proc (leaf-key t) (leaf-value t) b))
+             (else
+              (cata (cata b (branch-right t)) (branch-left t)))))))
+    (cata nil trie)))
+
 (define (trie-filter pred trie)
   (and trie
        (if (leaf? trie)

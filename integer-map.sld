@@ -24,6 +24,7 @@
    imapping-count
    imapping-any? imapping-every?
    imapping-keys imapping-values
+   imapping-fold-left imapping-fold-right
    )
 
   (include "trie.scm")
