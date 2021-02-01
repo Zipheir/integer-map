@@ -8,6 +8,7 @@
    imapping-any? imapping-every?
    imapping-keys imapping-values
    imapping-fold-left imapping-fold-right
+   imapping-map imapping-map/key
    )
 
   (import scheme

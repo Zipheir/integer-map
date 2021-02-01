@@ -262,15 +262,24 @@
 
 ;;;; Mapping and folding
 
-(define (iset-map proc set)
+;; Map proc over the values of imap, inserting result values under
+;; the same key.
+;; This is *not* the same as SRFI 146's mapping-map.
+(define (imapping-map proc imap)
   (assume (procedure? proc))
-  (raw-iset
-   (iset-fold (lambda (n t)
-                (let ((n* (proc n)))
-                  (assume (valid-integer? n*))
-                  (trie-insert t (proc n))))
-              #f
-              set)))
+  (raw-imapping
+   (imapping-fold (lambda (k v t)
+                    (trie-insert t k (proc v)))
+                  #f
+                  imap)))
+
+(define (imapping-map/key proc imap)
+  (assume (procedure? proc))
+  (raw-imapping
+   (imapping-fold (lambda (k v t)
+                    (trie-insert t k (proc k v)))
+                  #f
+                  imap)))
 
 (define (unspecified)
   (if #f #f))
