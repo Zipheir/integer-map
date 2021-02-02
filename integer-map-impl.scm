@@ -227,8 +227,8 @@
 
 (define (imapping-count pred imap)
   (assume (procedure? pred))
-  (imapping-fold (lambda (k v acc)
-                   (if (pred k v) (+ 1 acc) acc))
+  (imapping-fold (lambda (v acc)
+                   (if (pred v) (+ 1 acc) acc))
                  0
                  imap))
 
@@ -236,8 +236,8 @@
   (assume (procedure? pred))
   (call-with-current-continuation
    (lambda (return)
-     (imapping-fold (lambda (k v _)
-                      (and (pred k v) (return #t)))
+     (imapping-fold (lambda (v _)
+                      (and (pred v) (return #t)))
                     #f
                     imap))))
 
@@ -245,8 +245,8 @@
   (assume (procedure? pred))
   (call-with-current-continuation
    (lambda (return)
-     (imapping-fold (lambda (k v _)
-                      (or (pred k v) (return #f)))
+     (imapping-fold (lambda (v _)
+                      (or (pred v) (return #f)))
                     #t
                     imap))))
 
