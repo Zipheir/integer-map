@@ -251,14 +251,10 @@
                     imap))))
 
 (define (imapping-keys imap)
-  (imapping-fold-right (lambda (k _ ks) (cons k ks))
-                       '()
-                       imap))
+  (imapping-fold-right/key (lambda (k _ ks) (cons k ks)) '() imap))
 
 (define (imapping-values imap)
-  (imapping-fold-right (lambda (_ v vs) (cons v vs))
-                       '()
-                       imap))
+  (imapping-fold-right (lambda (v vs) (cons v vs)) '() imap))
 
 ;;;; Mapping and folding
 
