@@ -264,18 +264,18 @@
 (define (imapping-map proc imap)
   (assume (procedure? proc))
   (raw-imapping
-   (imapping-fold (lambda (k v t)
-                    (trie-insert t k (proc v)))
-                  #f
-                  imap)))
+   (imapping-fold/key (lambda (k v t)
+                        (trie-insert t k (proc v)))
+                      #f
+                      imap)))
 
 (define (imapping-map/key proc imap)
   (assume (procedure? proc))
   (raw-imapping
-   (imapping-fold (lambda (k v t)
-                    (trie-insert t k (proc k v)))
-                  #f
-                  imap)))
+   (imapping-fold/key (lambda (k v t)
+                        (trie-insert t k (proc k v)))
+                      #f
+                      imap)))
 
 (define (unspecified)
   (if #f #f))
