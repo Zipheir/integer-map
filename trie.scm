@@ -176,13 +176,15 @@
                    (copy-trie (branch-left trie))
                    (copy-trie (branch-right trie))))))
 
-(define (trie-partition pred trie)
+(define (trie-partition pred trie with-key)
   (letrec
    ((part
      (lambda (t)
        (cond ((not t) (values #f #f))
              ((leaf? t)
-              (if (pred (leaf-key t) (leaf-value t))
+              (if (if with-key
+                      (pred (leaf-key t) (leaf-value t))
+                      (pred (leaf-value t)))
                   (values t #f)
                   (values #f t)))
              (else

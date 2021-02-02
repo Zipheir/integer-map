@@ -348,14 +348,19 @@
 (define (imapping-remove/key pred imap)
   (imapping-filter/key (lambda (k v) (not (pred v))) imap))
 
-(define (iset-partition pred set)
+(define (imapping-partition pred imap)
   (assume (procedure? pred))
-  (assume (iset? set))
-  (let-values (((tin tout) (trie-partition pred (iset-trie set))))
-    (values (raw-iset tin) (raw-iset tout))))
+  (assume (imapping? imap))
+  (let-values (((tin tout)
+                (trie-partition pred (imapping-trie imap) #f)))
+    (values (raw-imapping tin) (raw-imapping tout))))
 
-(define (iset-partition! pred set)
-  (iset-partition pred set))
+(define (imapping-partition/key pred imap)
+  (assume (procedure? pred))
+  (assume (imapping? imap))
+  (let-values (((tin tout)
+                (trie-partition pred (imapping-trie imap) #t)))
+    (values (raw-imapping tin) (raw-imapping tout))))
 
 ;;;; Copying and conversion
 
