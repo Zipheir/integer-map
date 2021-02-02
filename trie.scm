@@ -236,20 +236,20 @@
 (define (trie-filter pred trie)
   (and trie
        (if (leaf? trie)
-           (and (pred (leaf-key trie) (leaf-value trie)) trie)
+           (and (pred (leaf-value trie)) trie)
            (branch (branch-prefix trie)
                    (branch-branching-bit trie)
                    (trie-filter pred (branch-left trie))
                    (trie-filter pred (branch-right trie))))))
 
-(define (trie-remove pred trie)
+(define (trie-filter/key pred trie)
   (and trie
-       (if (integer? trie)
-           (and (not (pred (leaf-key trie) (leaf-value trie))) trie)
+       (if (leaf? trie)
+           (and (pred (leaf-key trie) (leaf-value trie)) trie)
            (branch (branch-prefix trie)
                    (branch-branching-bit trie)
-                   (trie-remove pred (branch-left trie))
-                   (trie-remove pred (branch-right trie))))))
+                   (trie-filter pred (branch-left trie))
+                   (trie-filter pred (branch-right trie))))))
 
 (define (%trie-find-leftmost trie)
   (cond ((not trie) (nothing))

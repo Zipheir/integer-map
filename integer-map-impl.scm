@@ -332,15 +332,21 @@
               (trie-fold-right/key proc (trie-fold-right/key proc nil r) l)))
         (trie-fold-right/key proc nil trie))))
 
-(define (iset-filter pred set)
+(define (imapping-filter pred imap)
   (assume (procedure? pred))
-  (assume (iset? set))
-  (raw-iset (trie-filter pred (iset-trie set))))
+  (assume (imapping? imap))
+  (raw-imapping (trie-filter pred (imapping-trie imap))))
 
-(define (iset-remove pred set)
+(define (imapping-filter/key pred imap)
   (assume (procedure? pred))
-  (assume (iset? set))
-  (raw-iset (trie-filter (lambda (n) (not (pred n))) (iset-trie set))))
+  (assume (imapping? imap))
+  (raw-imapping (trie-filter/key pred (imapping-trie imap))))
+
+(define (imapping-remove pred imap)
+  (imapping-filter (lambda (v) (not (pred v))) imap))
+
+(define (imapping-remove/key pred imap)
+  (imapping-filter/key (lambda (k v) (not (pred v))) imap))
 
 (define (iset-partition pred set)
   (assume (procedure? pred))
