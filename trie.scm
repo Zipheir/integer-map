@@ -167,15 +167,6 @@
 (define (trie-union s t)
   (trie-merge trie-insert s t))
 
-(define (copy-trie trie)
-  (and trie
-       (if (leaf? trie)
-           trie
-           (branch (branch-prefix trie)
-                   (branch-branching-bit trie)
-                   (copy-trie (branch-left trie))
-                   (copy-trie (branch-right trie))))))
-
 (define (trie-partition pred trie with-key)
   (letrec
    ((part

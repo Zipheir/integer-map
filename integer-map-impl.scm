@@ -362,11 +362,7 @@
                 (trie-partition pred (imapping-trie imap) #t)))
     (values (raw-imapping tin) (raw-imapping tout))))
 
-;;;; Copying and conversion
-
-(define (iset-copy set)
-  (assume (iset? set))
-  (raw-iset (copy-trie (iset-trie set))))
+;;;; Conversion
 
 (define (iset->list set)
   (iset-fold cons '() set))
