@@ -250,12 +250,6 @@
                     #t
                     imap))))
 
-(define (imapping-keys imap)
-  (imapping-fold-right/key (lambda (k _ ks) (cons k ks)) '() imap))
-
-(define (imapping-values imap)
-  (imapping-fold-right (lambda (v vs) (cons v vs)) '() imap))
-
 ;;;; Mapping and folding
 
 ;; Map proc over the values of imap, inserting result values under
@@ -368,6 +362,12 @@
   (imapping-fold-right/key (lambda (k v as) (cons (cons k v) as))
                            '()
                            set))
+
+(define (imapping-keys imap)
+  (imapping-fold-right/key (lambda (k _ ks) (cons k ks)) '() imap))
+
+(define (imapping-values imap)
+  (imapping-fold-right (lambda (v vs) (cons v vs)) '() imap))
 
 ;;;; Comparison
 
