@@ -364,8 +364,10 @@
 
 ;;;; Conversion
 
-(define (iset->list set)
-  (iset-fold cons '() set))
+(define (imapping->alist imap)
+  (imapping-fold-right/key (lambda (k v as) (cons (cons k v) as))
+                           '()
+                           set))
 
 ;;;; Comparison
 

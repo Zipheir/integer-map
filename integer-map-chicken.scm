@@ -10,6 +10,7 @@
    imapping-fold-left imapping-fold-right
    imapping-fold-left/key imapping-fold-right/key
    imapping-map imapping-map/key
+   imapping->alist
    )
 
   (import scheme
