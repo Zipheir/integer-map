@@ -65,7 +65,7 @@
     (if (stop? seed)
         (raw-imapping trie)
         (let-values (((k v) (mapper seed)))
-          (assume (valid-integer? n))
+          (assume (valid-integer? k))
           (lp (trie-insert trie k v) (successor seed))))))
 
 (define (imapping-unfold-maybe proc seed)
