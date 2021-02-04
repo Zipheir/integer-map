@@ -334,6 +334,20 @@
               (trie-fold-right/key proc (trie-fold-right/key proc nil r) l)))
         (trie-fold-right/key proc nil trie))))
 
+(define (imapping-map->list proc imap)
+  (assume (procedure? proc))
+  (imapping-fold-right (lambda (v us)
+                         (cons (proc v) us))
+                       '()
+                       imap))
+
+(define (imapping-map/key->list proc imap)
+  (assume (procedure? proc))
+  (imapping-fold-right (lambda (k v us)
+                         (cons (proc k v) us))
+                       '()
+                       imap))
+
 (define (imapping-filter pred imap)
   (assume (procedure? pred))
   (assume (imapping? imap))

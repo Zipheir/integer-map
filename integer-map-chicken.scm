@@ -10,6 +10,7 @@
    imapping-fold-left imapping-fold-right
    imapping-fold-left/key imapping-fold-right/key
    imapping-map imapping-map/key
+   imapping-map->list imapping-map/key->list
    imapping-for-each imapping-for-each/key
    imapping->alist
    )
