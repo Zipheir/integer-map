@@ -282,6 +282,14 @@
                  (unspecified)
                  imap))
 
+(define (imapping-for-each/key proc imap)
+  (assume (procedure? proc))
+  (imapping-fold/key (lambda (k v _)
+                       (proc k v)
+                       (unspecified))
+                     (unspecified)
+                     imap))
+
 (define (imapping-fold-left proc nil imap)
   (assume (procedure? proc))
   (assume (imapping? set))
