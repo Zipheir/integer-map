@@ -115,8 +115,8 @@
            (let*-branch (((p m l r) trie))
              (and (match-prefix? key p m)
                   (if (zero-bit? key m)
-                      (trie-contains? l key)
-                      (trie-contains? r key)))))))
+                      (trie-assoc l key)
+                      (trie-assoc r key)))))))
 
 (define (branching-bit-higher? mask1 mask2)
   (if (negative? (fxxor mask1 mask2))  ; signs differ
@@ -358,10 +358,11 @@
        (or (not s)
            (not t)
            (cond ((leaf? s)
-                  (if (leaf? t)
-                      (not (fx=? (leaf-key s) (leaf-key t)))
-                      (not (trie-contains? t s))))
-                 ((leaf? t) (not (trie-contains? s t)))
+                  (let ((k (leaf-key s)))
+                    (if (leaf? t)
+                        (not (fx=? k (leaf-key t)))
+                        (not (trie-assoc t k)))))
+                 ((leaf? t) (not (trie-assoc s (leaf-key t))))
                  (else (branches-disjoint? s t))))))
     (branches-disjoint?
      (lambda (s t)
