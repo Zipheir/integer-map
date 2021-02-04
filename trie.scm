@@ -226,13 +226,19 @@
               (cata (cata b (branch-right t)) (branch-left t)))))))
     (cata nil trie)))
 
-(define (trie-filter pred trie with-key)
+(define (trie-filter pred trie)
   (and trie
        (if (leaf? trie)
-           (and (if with-key
-                    (pred (leaf-key trie) (leaf-value trie))
-                    (pred (leaf-value trie)))
-                trie)
+           (and (pred (leaf-value trie)) trie)
+           (branch (branch-prefix trie)
+                   (branch-branching-bit trie)
+                   (trie-filter pred (branch-left trie))
+                   (trie-filter pred (branch-right trie))))))
+
+(define (trie-filter/key pred trie)
+  (and trie
+       (if (leaf? trie)
+           (and (pred (leaf-key trie) (leaf-value trie)) trie)
            (branch (branch-prefix trie)
                    (branch-branching-bit trie)
                    (trie-filter pred (branch-left trie))

@@ -360,12 +360,12 @@
 (define (imapping-filter pred imap)
   (assume (procedure? pred))
   (assume (imapping? imap))
-  (raw-imapping (trie-filter pred (imapping-trie imap) #f)))
+  (raw-imapping (trie-filter pred (imapping-trie imap))))
 
 (define (imapping-filter/key pred imap)
   (assume (procedure? pred))
   (assume (imapping? imap))
-  (raw-imapping (trie-filter/key pred (imapping-trie imap) #t)))
+  (raw-imapping (trie-filter/key pred (imapping-trie imap))))
 
 (define (imapping-remove pred imap)
   (imapping-filter (lambda (v) (not (pred v))) imap))
