@@ -313,7 +313,7 @@
              ((not s) 'less)
              ((not t) 'greater)  ; disjoint
              ((and (leaf? s) (leaf? t))
-              (let*-leaf (((sk sv) s)) (((tk tv) t))
+              (let*-leaf (((sk sv) s) ((tk tv) t))
                 (if (and (fx=? sk tk) (=? comp sv tv))
                     'equal
                     'greater)))
@@ -580,18 +580,18 @@
 (define (trie-search trie key failure success)
   (let lp ((t trie) (build values))
     (cond ((not t)
-           (failure (lambda (value obj) (build (raw-leaf key value) obj))
+           (failure (lambda (value obj) (build (leaf key value) obj))
                     (lambda (obj) (build #f obj))))
           ((leaf? t)
            (let*-leaf (((key* value) t))
              (if (fx=? key key*)
                  (success (lambda (new-key new-value obj)
                             (assume (fx=? key new-key)) ; may be changed
-                            (build (raw-leaf key new-value) obj))
+                            (build (leaf key new-value) obj))
                           (lambda (obj) (build #f obj)))
                  (failure
                   (lambda (value obj)
-                    (build (trie-join key 0 (raw-leaf key value) key* 0 t)
+                    (build (trie-join key 0 (leaf key value) key* 0 t)
                            obj))
                   (lambda (obj) (build t obj))))))
           (else
