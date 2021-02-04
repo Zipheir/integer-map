@@ -68,6 +68,15 @@
           (assume (valid-integer? n))
           (lp (trie-insert trie k v) (successor seed))))))
 
+(define (imapping-unfold-maybe proc seed)
+  (assume (procedure? proc))
+  (let lp ((trie #f) (seed seed))
+    (maybe-ref
+     (proc seed)
+     (lambda () (raw-imapping trie))
+     (lambda (k v seed*)
+       (lp (trie-insert trie k v) seed*)))))
+
 ;;;; Predicates
 
 (define (imapping-contains? imap n)
