@@ -267,18 +267,18 @@
 (define (imapping-map proc imap)
   (assume (procedure? proc))
   (raw-imapping
-   (imapping-fold/key (lambda (k v t)
-                        (trie-insert t k (proc v)))
-                      #f
-                      imap)))
+   (imapping-fold-left/key (lambda (k v t)
+                             (trie-insert t k (proc v)))
+                           #f
+                           imap)))
 
 (define (imapping-map/key proc imap)
   (assume (procedure? proc))
   (raw-imapping
-   (imapping-fold/key (lambda (k v t)
-                        (trie-insert t k (proc k v)))
-                      #f
-                      imap)))
+   (imapping-fold-left/key (lambda (k v t)
+                             (trie-insert t k (proc k v)))
+                           #f
+                           imap)))
 
 (define (unspecified)
   (if #f #f))
@@ -404,9 +404,9 @@
 
 (define (imapping=? comp imap1 imap2 . imaps)
   (assume (comparator? comp))
-  (assume (iimap? imap1))
+  (assume (imapping? imap1))
   (let ((imap-eq1 (lambda (imap)
-                    (assume (imap? imap))
+                    (assume (imapping? imap))
                     (or (eqv? imap1 imap)
                         (trie=? comp
                                 (imapping-trie imap1)
