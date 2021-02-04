@@ -137,26 +137,16 @@
                   ps)))))
 
 (define (imapping-adjust imap key proc)
+  (assume (imapping? imap))
+  (assume (valid-integer? key))
   (assume (procedure? proc))
-  (let-values (((imap* _)
-                (imapping-search
-                 imap
-                 key
-                 (lambda (_ins ignore) (ignore #t))
-                 (lambda (_k v update _rem)
-                   (update (proc v) #t)))))
-    imap*))
+  (raw-imapping (trie-adjust (imapping-trie imap) key proc #f)))
 
 (define (imapping-adjust/key imap key proc)
+  (assume (imapping? imap))
+  (assume (valid-integer? key))
   (assume (procedure? proc))
-  (let-values (((imap* _)
-                (imapping-search
-                 imap
-                 key
-                 (lambda (_ins ignore) (ignore #t))
-                 (lambda (k v update _rem)
-                   (update (proc k v) #t)))))
-    imap*))
+  (raw-imapping (trie-adjust (imapping-trie imap) key proc #t)))
 
 (define imapping-delete
   (case-lambda

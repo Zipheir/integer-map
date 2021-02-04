@@ -92,19 +92,51 @@
 ;; association.  If it does, add a new association for key and
 ;; the result of calling combine on the new and old values.
 (define (trie-insert/combine trie key value combine)
-  (let-values (((trie* _)
-                (trie-search trie
-                             key
-                             (lambda (ins _ig) (ins #t))
-                             (lambda (_key old up _rem)
-                               (up key (combine value old) #t)))))
-    trie*))
+  (letrec
+   ((new-leaf (leaf key value))
+    (insert
+     (lambda (t)
+       (cond ((not t) (leaf key value))
+             ((leaf? t)
+              (let*-leaf (((k v) t))
+                (if (fx=? key k)
+                    (leaf k (combine value v))
+                    (trie-join key 0 new-leaf k 0 t))))
+             (else
+              (let*-branch (((p m l r) t))
+                (if (match-prefix? key p m)
+                    (if (zero-bit? key m)
+                        (branch p m (insert l) r)
+                        (branch p m l (insert r)))
+                    (trie-join key 0 new-leaf p m t))))))))
+    (insert trie)))
 
 (define (trie-join prefix1 mask1 trie1 prefix2 mask2 trie2)
   (let ((m (branching-bit prefix1 mask1 prefix2 mask2)))
     (if (zero-bit? prefix1 m)
         (branch (mask prefix1 m) m trie1 trie2)
         (branch (mask prefix1 m) m trie2 trie1))))
+
+;; If (key, value) is an association in trie, then replace it
+;; with (key, (proc value)).  Otherwise, return a copy of trie.
+(define (trie-adjust trie key proc with-key)
+  (letrec
+   ((update
+     (lambda (t)
+       (cond ((not t) t)
+             ((leaf? t)
+              (let*-leaf (((k v) t))
+                (if (fx=? key k)
+                    (leaf k (if with-key (proc k v) (proc v)))
+                    t)))
+             (else
+              (let*-branch (((p m l r) t))
+                (if (match-prefix? key p m)
+                    (if (zero-bit? key m)
+                        (branch p m (update l) r)
+                        (branch p m l (update r)))
+                    t)))))))
+    (update trie)))
 
 ;; Return the value associated with key in trie; if there is
 ;; none, return #f.
