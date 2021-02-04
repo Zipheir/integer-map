@@ -574,35 +574,3 @@
 	      (else (trie-union (subtrie> (branch-right trie) a low-inclusive)
 	                        (subtrie< (branch-left trie) b high-inclusive))))
 	(interval trie))))
-
-;; Search trie for key, and construct a new trie using the results of
-;; failure and success.
-(define (trie-search trie key failure success)
-  (let lp ((t trie) (build values))
-    (cond ((not t)
-           (failure (lambda (value obj) (build (leaf key value) obj))
-                    (lambda (obj) (build #f obj))))
-          ((leaf? t)
-           (let*-leaf (((key* value) t))
-             (if (fx=? key key*)
-                 (success (lambda (new-key new-value obj)
-                            (assume (fx=? key new-key)) ; may be changed
-                            (build (leaf key new-value) obj))
-                          (lambda (obj) (build #f obj)))
-                 (failure
-                  (lambda (value obj)
-                    (build (trie-join key 0 (leaf key value) key* 0 t)
-                           obj))
-                  (lambda (obj) (build t obj))))))
-          (else
-           (let*-branch (((p m l r) t))
-             (if (match-prefix? key p m)
-                 (if (zero-bit? key m)
-                     (lp l (lambda (l* obj)
-                             (build (branch p m l* r) obj)))
-                     (lp r (lambda (r* obj)
-                             (build (branch p m l r*) obj))))
-                 (failure (lambda (obj)
-                            (build (trie-join kp 0 key-leaf p m t)
-                                   obj))
-                          (lambda (obj) (build t obj)))))))))
