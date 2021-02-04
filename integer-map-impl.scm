@@ -127,7 +127,6 @@
 
 (define imapping-adjoin
   (case-lambda
-    ((imap) (imapping-copy imap))
     ((imap key value)      ; one-assoc fast path
      (imapping-adjoin/combine imap key value second))
     ((imap . ps)
