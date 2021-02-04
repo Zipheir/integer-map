@@ -80,12 +80,12 @@
 ;;;; Predicates
 
 (define (imapping-contains? imap n)
-  (assume (imapping? set))
+  (assume (imapping? imap))
   (assume (valid-integer? n))
   (and (trie-assoc (imapping-trie imap) n) #t))
 
 (define (imapping-empty? imap)
-  (assume (imapping? set))
+  (assume (imapping? imap))
   (not (imapping-trie imap)))
 
 (define (imapping-disjoint? imap1 imap2)
@@ -301,7 +301,7 @@
 
 (define (imapping-fold-left proc nil imap)
   (assume (procedure? proc))
-  (assume (imapping? set))
+  (assume (imapping? imap))
   (let ((trie (imapping-trie imap)))
     (if (branch? trie)
         (let*-branch (((p m l r) trie))
@@ -312,7 +312,7 @@
 
 (define (imapping-fold-left/key proc nil imap)
   (assume (procedure? proc))
-  (assume (imapping? set))
+  (assume (imapping? imap))
   (let ((trie (imapping-trie imap)))
     (if (branch? trie)
         (let*-branch (((p m l r) trie))
@@ -323,7 +323,7 @@
 
 (define (imapping-fold-right proc nil imap)
   (assume (procedure? proc))
-  (assume (imapping? set))
+  (assume (imapping? imap))
   (let ((trie (imapping-trie imap)))
     (if (branch? trie)
         (let*-branch (((p m l r) trie))
@@ -334,7 +334,7 @@
 
 (define (imapping-fold-right/key proc nil imap)
   (assume (procedure? proc))
-  (assume (imapping? set))
+  (assume (imapping? imap))
   (let ((trie (imapping-trie imap)))
     (if (branch? trie)
         (let*-branch (((p m l r) trie))
@@ -392,7 +392,7 @@
 (define (imapping->alist imap)
   (imapping-fold-right/key (lambda (k v as) (cons (cons k v) as))
                            '()
-                           set))
+                           imap))
 
 (define (imapping-keys imap)
   (imapping-fold-right/key (lambda (k _ ks) (cons k ks)) '() imap))
