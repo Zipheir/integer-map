@@ -237,28 +237,28 @@
 
 (define (imapping-count pred imap)
   (assume (procedure? pred))
-  (imapping-fold (lambda (v acc)
-                   (if (pred v) (+ 1 acc) acc))
-                 0
-                 imap))
+  (imapping-fold-left (lambda (v acc)
+                        (if (pred v) (+ 1 acc) acc))
+                      0
+                      imap))
 
 (define (imapping-any? pred imap)
   (assume (procedure? pred))
   (call-with-current-continuation
    (lambda (return)
-     (imapping-fold (lambda (v _)
-                      (and (pred v) (return #t)))
-                    #f
-                    imap))))
+     (imapping-fold-left (lambda (v _)
+                           (and (pred v) (return #t)))
+                         #f
+                         imap))))
 
 (define (imapping-every? pred imap)
   (assume (procedure? pred))
   (call-with-current-continuation
    (lambda (return)
-     (imapping-fold (lambda (v _)
-                      (or (pred v) (return #f)))
-                    #t
-                    imap))))
+     (imapping-fold-left (lambda (v _)
+                           (or (pred v) (return #f)))
+                         #t
+                         imap))))
 
 ;;;; Mapping and folding
 
@@ -286,19 +286,19 @@
 
 (define (imapping-for-each proc imap)
   (assume (procedure? proc))
-  (imapping-fold (lambda (v _)
-                   (proc v)
-                   (unspecified))
-                 (unspecified)
-                 imap))
+  (imapping-fold-left (lambda (v _)
+                        (proc v)
+                        (unspecified))
+                      (unspecified)
+                      imap))
 
 (define (imapping-for-each/key proc imap)
   (assume (procedure? proc))
-  (imapping-fold/key (lambda (k v _)
-                       (proc k v)
-                       (unspecified))
-                     (unspecified)
-                     imap))
+  (imapping-fold-left/key (lambda (k v _)
+                            (proc k v)
+                            (unspecified))
+                          (unspecified)
+                          imap))
 
 (define (imapping-fold-left proc nil imap)
   (assume (procedure? proc))
