@@ -431,10 +431,10 @@
            (() #t)
            ((m . imaps*) (lp t2 (imapping-trie m) imaps*))))))
 
-(define (iset>? comp imap1 imap2 . imaps)
+(define (imapping>? comp imap1 imap2 . imaps)
   (assume (comparator? comp))
-  (assume (iset? imap1))
-  (assume (iset? imap2))
+  (assume (imapping? imap1))
+  (assume (imapping? imap2))
   (let lp ((t1 (imapping-trie imap1))
            (t2 (imapping-trie imap2))
            (imaps imaps))
@@ -443,29 +443,29 @@
            (() #t)
            ((m . imaps*) (lp t2 (imapping-trie m) imaps*))))))
 
-(define (iset<=? comp imap1 imap2 . imaps)
+(define (imapping<=? comp imap1 imap2 . imaps)
   (assume (comparator? comp))
-  (assume (iset? imap1))
-  (assume (iset? imap2))
+  (assume (imapping? imap1))
+  (assume (imapping? imap2))
   (let lp ((t1 (imapping-trie imap1))
            (t2 (imapping-trie imap2))
            (imaps imaps))
     (and (memv (trie-subset-compare comp t1 t2) '(less equal))
          (match imaps
            (() #t)
-           ((m . imaps*) (lp t2 (iset-trie m) imaps*))))))
+           ((m . imaps*) (lp t2 (imapping-trie m) imaps*))))))
 
-(define (iset>=? comp imap1 imap2 . imaps)
+(define (imapping>=? comp imap1 imap2 . imaps)
   (assume (comparator? comp))
-  (assume (iset? imap1))
-  (assume (iset? imap2))
+  (assume (imapping? imap1))
+  (assume (imapping? imap2))
   (let lp ((t1 (imapping-trie imap1))
            (t2 (imapping-trie imap2))
            (imaps imaps))
     (and (memv (trie-subset-compare comp t1 t2) '(greater equal))
          (match imaps
            (() #t)
-           ((m . imaps*) (lp t2 (iset-trie m) imaps*))))))
+           ((m . imaps*) (lp t2 (imapping-trie m) imaps*))))))
 
 ;;;; Set theory operations
 
