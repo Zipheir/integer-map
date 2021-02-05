@@ -429,41 +429,28 @@
              t)))))  ; key doesn't occur in t
     (update trie)))
 
-;; Identical to trie-insert, but delete key if it exists.
-(define (trie-xor-insert trie key)
-  (letrec
-   ((ins
-     (lambda (t)
-       (cond ((not t) key)  ; new leaf
-             ((integer? t)
-              (if (fx=? t key) #f (trie-join key 0 key t 0 t)))
-             (else
-              (let*-branch (((p m l r) t))
-                (if (match-prefix? key p m)
-                    (if (zero-bit? key m)
-                        (branch p m (ins l) r)
-                        (branch p m l (ins r)))
-                    (trie-join key 0 key p m t))))))))
-    (ins trie)))
-
+;; Left-biased intersection: Preserve associations in trie1 in case
+;; of duplicates.
 (define (trie-intersection trie1 trie2)
   (letrec
    ((intersect
      (lambda (s t)
        (cond ((or (not s) (not t)) #f)
-             ((and (integer? s) (integer? t)) (and (fx=? s t) s))
-             ((integer? s) (ins-int s t))
-             ((integer? t) (ins-int t s))
+             ((and (leaf? s) (leaf? t))
+              (if (fx=? (leaf-key s) (leaf-key t)) s #f))
+             ((leaf? s) (insert-leaf s t))
+             ((leaf? t) (insert-leaf t s))
              (else (intersect-branches s t)))))
-    (ins-int
-     (lambda (n t)
-       (let lp ((t t))
-         (cond ((and (integer? t) (fx=? n t)) n)
-               ((branch? t)
-                (let*-branch (((p m l r) t))
-                  (and (match-prefix? n p m)
-                       (if (zero-bit? n m) (lp l) (lp r)))))
-               (else #f)))))
+    (insert-leaf
+     (lambda (lf t)
+       (let*-leaf (((k v) lf))
+         (let lp ((t t))
+           (cond ((and (leaf? t) (fx=? k (leaf-key t))) lf)
+                 ((branch? t)
+                  (let*-branch (((p m l r) t))
+                    (and (match-prefix? k p m)
+                         (if (zero-bit? k m) (lp l) (lp r)))))
+                 (else #f))))))
     (intersect-branches
      (lambda (s t)
        (let*-branch (((p m sl sr) s) ((q n tl tr) t))
@@ -488,20 +475,9 @@
      (lambda (s t)
        (cond ((not s) #f)
              ((not t) s)
-             ((integer? s) (diff-int s t))
-             ((integer? t) (trie-delete s t))
+             ((leaf? s) (if (trie-assoc (leaf-key s) t) #f s))
+             ((leaf? t) (trie-delete s (leaf-key t)))
              (else (branch-difference s t)))))
-    (diff-int
-     (lambda (n t)
-       (cond ((not t) n)
-             ((integer? t) (if (fx=? t n) #f n))
-             (else
-              (let*-branch (((p m l r) t))
-                (if (match-prefix? n p m)
-                    (if (zero-bit? n m)
-                        (diff-int n l)
-                        (diff-int n r))
-                    n))))))
     (branch-difference
      (lambda (s t)
        (let*-branch (((p m sl sr) s) ((q n tl tr) t))
@@ -517,6 +493,9 @@
                     (difference s tr)))
                (else s))))))
     (difference trie1 trie2)))
+
+(define (trie-xor trie1 trie2)
+  (error "not implemented"))
 
 ;; Return a trie containing all the elements of `trie' which are
 ;; less than k, if `inclusive' is false, or less than or equal to

@@ -469,62 +469,42 @@
 
 ;;;; Set theory operations
 
-(define (iset-union set . rest)
-  (assume (iset? set))
-  (if (null? rest)
-      (iset-copy set)
-      (raw-iset (fold (lambda (s t)
-                        (assume (iset? s))
-                        (trie-merge trie-insert (iset-trie s) t))
-                      (iset-trie set)
-                      rest))))
+(define (imapping-union imap . rest)
+  (assume (imapping? imap))
+  (assume (pair? rest))
+  (raw-imapping
+   (fold (lambda (im t)
+           (assume (imapping? im))
+           (trie-merge second (imapping-trie im) t))
+         (imapping-trie imap)
+         rest)))
 
-(define (iset-union! set . rest)
-  (apply iset-union set rest))
+(define (imapping-intersection imap . rest)
+  (assume (imapping? imap))
+  (assume (pair? rest))
+  (raw-imapping
+   (fold (lambda (im t)
+           (assume (imapping? im))
+           (trie-intersection (imapping-trie im) t))
+         (imapping-trie imap)
+         rest)))
 
-(define iset-intersection
-  (case-lambda
-    ((set) (iset-copy set))
-    ((set1 set2)
-     (assume (iset? set1))
-     (assume (iset? set2))
-     (raw-iset (trie-intersection (iset-trie set1) (iset-trie set2))))
-    ((set . rest)
-     (assume (iset? set))
-     (raw-iset (fold (lambda (s t)
-                       (assume (iset? s))
-                       (trie-intersection (iset-trie s) t))
-               (iset-trie set)
-               rest)))))
+(define (iset-difference imap . rest)
+  (assume (imapping? imap))
+  (assume (pair? rest))
+  (raw-imapping
+   (trie-difference (imapping-trie imap)
+                    (imapping-trie
+                     (match rest
+                       ((imap2) imap2)
+                       ((imap2 . imaps)
+                        (apply imapping-union imap2 imaps)))))))
 
-(define (iset-intersection! set . rest)
-  (apply iset-intersection set rest))
-
-(define iset-difference
-  (case-lambda
-    ((set) (iset-copy set))
-    ((set1 set2)              ; fast path
-     (assume (iset? set1))
-     (assume (iset? set2))
-     (raw-iset (trie-difference (iset-trie set1) (iset-trie set2))))
-    ((set . rest)
-     (assume (iset? set))
-     (raw-iset
-      (trie-difference (iset-trie set)
-                       (iset-trie (apply iset-union rest)))))))
-
-(define (iset-difference! set . rest)
-  (apply iset-difference set rest))
-
-(define (iset-xor set1 set2)
-  (assume (iset? set1))
-  (assume (iset? set2))
-  (if (eqv? set1 set2)  ; quick check
-      (iset)
-      (raw-iset
-       (trie-merge trie-xor-insert (iset-trie set1) (iset-trie set2)))))
-
-(define (iset-xor! set1 set2) (iset-xor set1 set2))
+(define (imapping-xor imap1 imap2)
+  (assume (imapping? imap1))
+  (assume (imapping? imap2))
+  (raw-imapping
+   (trie-xor (imapping-trie mapping1) (imapping-trie mapping2))))
 
 ;;;; Subsets
 
