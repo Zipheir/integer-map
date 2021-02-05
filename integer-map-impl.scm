@@ -125,14 +125,26 @@
 
 ;;;; Updaters
 
-(define imapping-adjoin
+(define imapping-adjoin/combine
   (case-lambda
-    ((imap key value)      ; one-assoc fast path
-     (imapping-adjoin/combine imap key value second))
-    ((imap . ps)
+    ((imap combine key value)      ; one-assoc fast path
+     (raw-imapping
+      (trie-insert/combine (imapping-trie imap) key value combine)))
+    ((imap combine . ps)
      (raw-imapping
       (plist-fold (lambda (k v t)
-                    (trie-insert/combine t k v second))
+                    (trie-insert/combine t k v combine))
+                  (imapping-trie imap)
+                  ps)))))
+
+(define imapping-adjoin
+  (case-lambda
+    ((imap key value)              ; one-assoc fast path
+     (raw-imapping
+      (trie-insert (imapping-trie imap) key value)))
+    ((imap . ps)
+     (raw-imapping
+      (plist-fold (lambda (k v t) (trie-insert t k v))
                   (imapping-trie imap)
                   ps)))))
 
