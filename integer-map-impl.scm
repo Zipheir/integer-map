@@ -55,7 +55,7 @@
 
 (define (alist->imapping as)
   (assume (pair-or-null? as))
-  (imapping-unfold null? (lambda (p) (values (car p) (cdr p))) cdr))
+  (imapping-unfold null? (lambda (p) (values (car p) (cdr p))) cdr as))
 
 (define (imapping-unfold stop? mapper successor seed)
   (assume (procedure? stop?))
