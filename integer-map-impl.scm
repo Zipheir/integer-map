@@ -55,7 +55,10 @@
 
 (define (alist->imapping as)
   (assume (pair-or-null? as))
-  (imapping-unfold null? (lambda (p) (values (car p) (cdr p))) cdr as))
+  (imapping-unfold-maybe (match-lambda
+                           (() (nothing))
+                           (((k . v) . as*) (just k v as*)))
+                         as))
 
 (define (imapping-unfold stop? mapper successor seed)
   (assume (procedure? stop?))
