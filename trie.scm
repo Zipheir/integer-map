@@ -194,7 +194,7 @@
 (define (branch prefix mask trie1 trie2)
   (cond ((not trie1) trie2)
         ((not trie2) trie1)
-        (else (branch prefix mask trie1 trie2))))
+        (else (raw-branch prefix mask trie1 trie2))))
 
 (define (trie-union s t)
   (trie-merge trie-insert s t))
