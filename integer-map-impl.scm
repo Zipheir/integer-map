@@ -178,6 +178,22 @@
   (assume (or (pair? keys) (null? keys)))
   (imapping-filter (lambda (k _) (memv k keys)) imap))
 
+;; Update the association (key, value) in trie with the result of
+;; (mproc value), which is a Maybe value.
+(define (imapping-update imap key mproc)
+  (assume (imapping? imap))
+  (assume (valid-integer? key))
+  (assume (procedure? mproc))
+  (raw-imapping (trie-update (imapping-trie imap) key mproc #f)))
+
+;; Update the association (key, value) in trie with the result of
+;; (mproc key value), which is a Maybe value.
+(define (imapping-update/key imap key mproc)
+  (assume (imapping? imap))
+  (assume (valid-integer? key))
+  (assume (procedure? mproc))
+  (raw-imapping (trie-update (imapping-trie imap) key mproc #t)))
+
 ;; Delete the element with the least key, or return an empty
 ;; mapping if `imap' is empty.
 (define (imapping-delete-min imap)
