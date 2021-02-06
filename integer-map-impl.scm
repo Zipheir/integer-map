@@ -505,7 +505,7 @@
          (imapping-trie imap)
          rest)))
 
-(define (iset-difference imap . rest)
+(define (imapping-difference imap . rest)
   (assume (imapping? imap))
   (assume (pair? rest))
   (raw-imapping
