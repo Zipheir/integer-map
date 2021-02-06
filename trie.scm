@@ -160,6 +160,26 @@
                     t)))))))
     (update trie)))
 
+(define (trie-alter trie key proc)
+  (letrec
+   ((update
+     (lambda (t)
+       (cond ((not t) t)
+             ((leaf? t)
+              (let*-leaf (((k v) t))
+                (maybe-ref
+                 (proc (truth->maybe (and (fx=? key k) v)))
+                 (lambda () #f)
+                 (lambda (v*) (leaf k v*)))))
+             (else
+              (let*-branch (((p m l r) t))
+                (if (match-prefix? key p m)
+                    (if (zero-bit? key m)
+                        (branch p m (update l) r)
+                        (branch p m l (update r)))
+                    t)))))))
+    (update trie)))
+
 ;; Return the value associated with key in trie; if there is
 ;; none, return #f.
 (define (trie-assoc trie key)
