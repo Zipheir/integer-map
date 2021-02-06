@@ -516,8 +516,44 @@
                (else s))))))
     (difference trie1 trie2)))
 
+;; Remove the assoc for key if it exists in trie; otherwise, add the
+;; assoc (key, value).
+(define (%trie-insert-xor trie key value)
+  (trie-alter trie
+              key
+              (lambda (mv)
+                (if (nothing? mv)
+                    (just value)
+                    (nothing)))))
+
 (define (trie-xor trie1 trie2)
-  (error "not implemented"))
+  (letrec
+    ((merge
+      (lambda (s t)
+        (cond ((not s) t)
+              ((not t) s)
+              ((leaf? s)
+               (%trie-update-xor t (leaf-key s) (leaf-value s)))
+              ((leaf? t)
+               (%trie-update-xor s (leaf-key t) (leaf-value t)))
+              (else (merge-branches s t)))))
+     (merge-branches
+      (lambda (s t)
+        (let*-branch (((p m s1 s2) s)
+                      ((q n t1 t2) t))
+          (cond ((and (fx=? m n) (fx=? p q))
+                 (branch p m (merge s1 t1) (merge s2 t2)))
+                ((and (branching-bit-higher? m n) (match-prefix? q p m))
+                 (if (zero-bit? q m)
+                     (branch p m (merge s1 t) s2)
+                     (branch p m s1 (merge s2 t))))
+                ((and (branching-bit-higher? n m) (match-prefix? p q n))
+                 (if (zero-bit? p n)
+                     (branch q n (merge s t1) t2)
+                     (branch q n t1 (merge s t2))))
+                (else
+                 (trie-join p m s q n t)))))))
+    (merge trie1 trie2)))
 
 ;; Return a trie containing all the elements of `trie' which are
 ;; less than k, if `inclusive' is false, or less than or equal to
