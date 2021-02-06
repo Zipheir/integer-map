@@ -553,9 +553,9 @@
         (cond ((not s) t)
               ((not t) s)
               ((leaf? s)
-               (%trie-update-xor t (leaf-key s) (leaf-value s)))
+               (%trie-insert-xor t (leaf-key s) (leaf-value s)))
               ((leaf? t)
-               (%trie-update-xor s (leaf-key t) (leaf-value t)))
+               (%trie-insert-xor s (leaf-key t) (leaf-value t)))
               (else (merge-branches s t)))))
      (merge-branches
       (lambda (s t)
