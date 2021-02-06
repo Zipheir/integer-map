@@ -527,10 +527,11 @@
     ((split
       (lambda (t)
         (cond ((not t) #f)
-              ((integer? t)
-               (cond ((fx<? t k) t)
-                     ((and (fx=? t k) inclusive) t)
-                     (else #f)))
+              ((leaf? t)
+               (let ((tk (leaf-key t)))
+                 (cond ((fx<? tk k) t)
+                       ((and (fx=? tk k) inclusive) t)
+                       (else #f))))
               (else
                (let*-branch (((p m l r) t))
                  (if (match-prefix? k p m)
@@ -552,10 +553,11 @@
    ((split
      (lambda (t)
        (cond ((not t) #f)
-             ((integer? t)
-              (cond ((fx>? t k) t)
-                    ((and (fx=? t k) inclusive) t)
-                    (else #f)))
+             ((leaf? t)
+              (let ((tk (leaf-key t)))
+                (cond ((fx>? tk k) t)
+                      ((and (fx=? tk k) inclusive) t)
+                      (else #f))))
              (else
               (let*-branch (((p m l r) t))
                 (if (match-prefix? k p m)
@@ -578,9 +580,11 @@
    ((interval
      (lambda (t)
        (cond ((not t) #f)
-             ((integer? t) (and ((if low-inclusive fx>=? fx>?) t a)
-                                ((if high-inclusive fx<=? fx<?) t b)
-                                t))
+             ((leaf? t)
+              (let ((tk (leaf-key t)))
+                (and ((if low-inclusive fx>=? fx>?) tk a)
+                     ((if high-inclusive fx<=? fx<?) tk b)
+                     t)))
              (else (branch-interval t)))))
     (branch-interval
      (lambda (t)
