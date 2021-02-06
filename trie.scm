@@ -147,7 +147,7 @@
               (let*-leaf (((k v) t))
                 (if (fx=? key k)
                     (maybe-ref
-                     (if with-key (proc k v) (proc v))
+                     (if with-key (mproc k v) (mproc v))
                      (lambda () #f)
                      (lambda (v*) (leaf k v*)))
                     t)))

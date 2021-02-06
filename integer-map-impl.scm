@@ -528,15 +528,16 @@
   (assume (imapping? imap1))
   (assume (imapping? imap2))
   (raw-imapping
-   (trie-xor (imapping-trie mapping1) (imapping-trie mapping2))))
+   (trie-xor (imapping-trie imap1) (imapping-trie imap2))))
 
 ;;;; Subsets
 
 (define (isubmapping= imap key)
   (assume (imapping? imap))
   (assume (valid-integer? key))
-  (cond ((imapping-assoc imap key) => (lambda (v) (imapping key v)))
-        (else (imapping))))
+  (maybe-ref (imapping-lookup imap key)
+             imapping
+             (lambda (v) (imapping key v))))
 
 (define (imapping-open-interval imap low high)
   (assume (imapping? imap))
