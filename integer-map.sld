@@ -51,6 +51,7 @@
    imapping-open-interval imapping-closed-interval
    imapping-open-closed-interval imapping-closed-open-interval
    isubmapping= isubmapping< isubmapping<= isubmapping>=
+   isubmapping>
    )
 
   (include "trie.scm")
