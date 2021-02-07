@@ -264,70 +264,64 @@
   (letrec
    ((cata
      (lambda (b t)
-       (cond ((not t) b)
-             ((leaf? t) (proc (leaf-key t) (leaf-value t) b))
-             (else
-              (cata (cata b (branch-left t)) (branch-right t)))))))
+       (match t
+         (#f b)
+         (($ <leaf> k v) (proc k v b))
+         (($ <branch> _ _ l r) (cata (cata b l) r))))))
     (cata nil trie)))
 
 (define (trie-fold-right proc nil trie)
   (letrec
    ((cata
      (lambda (b t)
-       (cond ((not t) b)
-             ((leaf? t) (proc (leaf-value t) b))
-             (else
-              (cata (cata b (branch-right t)) (branch-left t)))))))
+       (match t
+         (#f b)
+         (($ <leaf> _ v) (proc v b))
+         (($ <branch> _ _ l r) (cata (cata b r) l))))))
     (cata nil trie)))
 
 (define (trie-fold-right/key proc nil trie)
   (letrec
    ((cata
      (lambda (b t)
-       (cond ((not t) b)
-             ((leaf? t) (proc (leaf-key t) (leaf-value t) b))
-             (else
-              (cata (cata b (branch-right t)) (branch-left t)))))))
+       (match t
+         (#f b)
+         (($ <leaf> k v) (proc k v b))
+         (($ <branch> _ _ l r) (cata (cata b r) l))))))
     (cata nil trie)))
 
 (define (trie-filter pred trie)
-  (and trie
-       (if (leaf? trie)
-           (and (pred (leaf-value trie)) trie)
-           (branch (branch-prefix trie)
-                   (branch-branching-bit trie)
-                   (trie-filter pred (branch-left trie))
-                   (trie-filter pred (branch-right trie))))))
+  (match trie
+    (#f #f)
+    (($ <leaf> _ v) (if (pred v) trie #f))
+    (($ <branch> p m l r)
+     (branch p m (trie-filter pred l) (trie-filter pred r)))))
 
 (define (trie-filter/key pred trie)
-  (and trie
-       (if (leaf? trie)
-           (and (pred (leaf-key trie) (leaf-value trie)) trie)
-           (branch (branch-prefix trie)
-                   (branch-branching-bit trie)
-                   (trie-filter pred (branch-left trie))
-                   (trie-filter pred (branch-right trie))))))
+  (match trie
+    (#f #f)
+    (($ <leaf> k v) (if (pred k v) trie #f))
+    (($ <branch> p m l r)
+     (branch p m (trie-filter/key pred l) (trie-filter/key pred r)))))
 
 (define (%trie-find-leftmost trie)
-  (cond ((not trie) (nothing))
-        ((leaf? trie) (just (leaf-key trie) (leaf-value trie)))
-        (else (%trie-find-leftmost (branch-left trie)))))
+  (match trie
+    (#f (nothing))
+    (($ <leaf> k v) (just k v))
+    (($ <branch> _ _ l _) (%trie-find-leftmost l))))
 
 ;; Call success on the key and value of the leftmost leaf and use
 ;; the resulting Maybe to update the value.
 (define (%trie-update-min/key trie success)
   (letrec
    ((update
-     (lambda (t)
-       (cond ((not t) #f)
-             ((leaf? t)
-              (let*-leaf (((k v) t))
-                (maybe-ref (success k v)
-                           (lambda () #f)
-                           (lambda (v*) (leaf k v*)))))
-             (else
-              (let*-branch (((p m l r) t))
-                (branch p m (update l) r)))))))
+     (match-lambda
+       (#f #f)
+       (($ <leaf> k v)
+        (maybe-ref (success k v)
+                   (lambda () #f)
+                   (lambda (v*) (leaf k v*))))
+       (($ <branch> p m l r) (branch p m (update l) r)))))
     (match trie
       (($ <branch> p m l r)
        (if (negative? m)
@@ -345,16 +339,13 @@
 (define (%trie-update-max/key trie success)
   (letrec
    ((update
-     (lambda (t)
-       (cond ((not t) #f)
-             ((leaf? t)
-              (let*-leaf (((k v) t))
-                (maybe-ref (success k v)
-                           (lambda () #f)
-                           (lambda (v*) (leaf k v*)))))
-             (else
-              (let*-branch (((p m l r) t))
-                (branch p m l (update r))))))))
+     (match-lambda
+       (#f #f)
+       (($ <leaf> k v)
+        (maybe-ref (success k v)
+                   (lambda () #f)
+                   (lambda (v*) (leaf k v*))))
+       (($ <branch> p m l r) (branch p m l (update r))))))
     (match trie
       (($ <branch> p m l r)
        (if (negative? m)
@@ -458,17 +449,15 @@
   (letrec
    ((update
      (lambda (t)
-       (cond ((not t) #f)
-             ((leaf? t) (if (fx=? (leaf-key t) key) #f t))
-             (else (update-branch t)))))
-    (update-branch
-     (lambda (t)
-       (let*-branch (((p m l r) t))
-         (if (match-prefix? key p m)
-             (if (zero-bit? key m)
-                 (branch p m (update l) r)
-                 (branch p m l (update r)))
-             t)))))  ; key doesn't occur in t
+       (match t
+         (#f #f)
+         (($ <leaf> k _) (if (fx=? k key) #f t))
+         (($ <branch> p m l r)
+          (if (match-prefix? key p m)
+              (if (zero-bit? key m)
+                  (branch p m (update l) r)
+                  (branch p m l (update r)))
+              t))))))  ; key doesn't occur in t
     (update trie)))
 
 ;; Left-biased intersection: Preserve associations in trie1 in case
