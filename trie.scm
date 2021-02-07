@@ -304,11 +304,19 @@
     (($ <branch> p m l r)
      (branch p m (trie-filter/key pred l) (trie-filter/key pred r)))))
 
-(define (%trie-find-leftmost trie)
-  (match trie
-    (#f (nothing))
-    (($ <leaf> k v) (just k v))
-    (($ <branch> _ _ l _) (%trie-find-leftmost l))))
+;; Return a Just containing the least key and value of trie,
+;; or Nothing if trie is empty.
+(define (trie-min trie)
+  (letrec
+   ((search
+     (match-lambda
+       (($ <leaf> k v) (just k v))
+       (($ <branch> _ _ l _) (search l)))))
+    (match trie
+      (#f (nothing))
+      (($ <branch> _ m l r)
+       (if (fxnegative? m) (search r) (search l)))
+      (_ (search trie)))))
 
 ;; Call success on the key and value of the leftmost leaf and use
 ;; the resulting Maybe to update the value.
@@ -329,10 +337,17 @@
            (branch p m (update l) r)))
       (_ (update trie)))))
 
-(define (%trie-find-rightmost trie)
-  (cond ((not trie) (nothing))
-        ((leaf? trie) (just (leaf-key trie) (leaf-value trie)))
-        (else (%trie-find-rightmost (branch-right trie)))))
+(define (trie-max trie)
+  (letrec
+   ((search
+     (match-lambda
+       (($ <leaf> k v) (just k v))
+       (($ <branch> _ _ _ r) (search r)))))
+    (match trie
+      (#f (nothing))
+      (($ <branch> _ m l r)
+       (if (fxnegative? m) (search l) (search r)))
+      (_ (search trie)))))
 
 ;; Call success on the key and value of the greatest-keyed leaf
 ;; and use the resulting Maybe to update the value.

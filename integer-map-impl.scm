@@ -108,23 +108,11 @@
 
 (define (imapping-min imap)
   (assume (imapping? imap))
-  (let ((trie (imapping-trie imap)))
-    (if (branch? trie)
-        (%trie-find-leftmost
-         (if (negative? (branch-branching-bit trie))
-             (branch-right trie)
-             (branch-left trie)))
-        (%trie-find-leftmost trie))))
+  (trie-min (imapping-trie imap)))
 
 (define (imapping-max imap)
   (assume (imapping? imap))
-  (let ((trie (imapping-trie imap)))
-    (if (branch? trie)
-        (%trie-find-rightmost
-         (if (negative? (branch-branching-bit trie))
-             (branch-left trie)
-             (branch-right trie)))
-        (%trie-find-rightmost trie))))
+  (trie-max (imapping-trie imap)))
 
 ;;;; Updaters
 
