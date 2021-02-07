@@ -176,7 +176,7 @@
 (define (imapping-delete-all imap keys)
   (assume (imapping? imap))
   (assume (or (pair? keys) (null? keys)))
-  (imapping-filter (lambda (k _) (memv k keys)) imap))
+  (imapping-filter/key (lambda (k _) (memv k keys)) imap))
 
 ;; Update the association (key, value) in trie with the result of
 ;; (mproc value), which is a Maybe value.
