@@ -557,22 +557,22 @@
   (raw-imapping
    (subtrie-interval (imapping-trie imap) low high #t #f)))
 
-(define (imapping< imap key)
+(define (isubmapping< imap key)
   (assume (imapping? imap))
   (assume (valid-integer? key))
   (raw-imapping (subtrie< (imapping-trie imap) key #f)))
 
-(define (imapping-range<= imap key)
+(define (isubmapping<= imap key)
   (assume (imapping? imap))
   (assume (valid-integer? key))
   (raw-imapping (subtrie< (imapping-trie imap) key #t)))
 
-(define (imapping-range> imap key)
+(define (isubmapping> imap key)
   (assume (imapping? imap))
   (assume (valid-integer? key))
   (raw-imapping (subtrie> (imapping-trie imap) key #f)))
 
-(define (imapping-range>= imap key)
+(define (isubmapping>= imap key)
   (assume (imapping? imap))
   (assume (valid-integer? key))
   (raw-imapping (subtrie> (imapping-trie imap) key #t)))
