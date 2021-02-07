@@ -332,7 +332,7 @@
 ;; the resulting Maybe to update the value.
 (define (%trie-update-min/key trie success)
   (letrec
-   ((traverse
+   ((update
      (lambda (t)
        (cond ((not t) #f)
              ((leaf? t)
@@ -342,8 +342,13 @@
                            (lambda (v*) (leaf k v*)))))
              (else
               (let*-branch (((p m l r) t))
-                (branch p m (traverse l) r)))))))
-    (traverse trie)))
+                (branch p m (update l) r)))))))
+    (match trie
+      (($ <branch> p m l r)
+       (if (negative? m)
+           (branch p m l (update r))
+           (branch p m (update l) r)))
+      (_ (update trie)))))
 
 (define (%trie-find-rightmost trie)
   (cond ((not trie) (nothing))
@@ -354,7 +359,7 @@
 ;; and use the resulting Maybe to update the value.
 (define (%trie-update-max/key trie success)
   (letrec
-   ((traverse
+   ((update
      (lambda (t)
        (cond ((not t) #f)
              ((leaf? t)
@@ -364,8 +369,13 @@
                            (lambda (v*) (leaf k v*)))))
              (else
               (let*-branch (((p m l r) t))
-                (branch p m l (traverse r))))))))
-    (traverse trie)))
+                (branch p m l (update r))))))))
+    (match trie
+      (($ <branch> p m l r)
+       (if (negative? m)
+           (branch p m (update l) r)
+           (branch p m l (update r))))
+      (_ (update trie)))))
 
 ;;;; Comparisons
 

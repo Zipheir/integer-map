@@ -218,14 +218,7 @@
   (assume (imapping? imap))
   (assume (procedure? success))
   (raw-imapping
-   (%trie-update-min/key
-    (let ((trie (imapping-trie imap)))
-      (if (branch? trie)
-          (if (negative? (branch-branching-bit trie))
-              (branch-right trie)
-              (branch-left trie))
-          trie))
-    success)))
+   (%trie-update-min/key (imapping-trie imap) success)))
 
 ;; Delete the element with the greatest key, or return an empty
 ;; mapping if `imap' is empty.
@@ -243,14 +236,7 @@
   (assume (imapping? imap))
   (assume (procedure? success))
   (raw-imapping
-   (%trie-update-max/key
-    (let ((trie (imapping-trie imap)))
-      (if (branch? trie)
-          (if (negative? (branch-branching-bit trie))
-              (branch-left trie)
-              (branch-right trie))
-          trie))
-    success)))
+   (%trie-update-max/key (imapping-trie imap) success)))
 
 ;;;; The whole imapping
 
