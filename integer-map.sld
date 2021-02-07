@@ -16,6 +16,11 @@
           ((_ expr . _)
            (or expr (car 0))))))))
 
+  (cond-expand
+    (chibi (import (chibi match)))
+    (chicken (import (matchable)))
+    (else (import (srfi 204))))
+
   (export
    imapping
    imapping-unfold imapping-unfold-maybe
@@ -41,9 +46,9 @@
    imapping=? imapping<? imapping>? imapping<=? imapping>=?
    imapping-union imapping-intersection imapping-difference imapping-xor
    alist->imapping
-   ; imapping-open-interval imapping-closed-interval
-   ; imapping-open-closed-interval imapping-closed-open-interval
-   ; isubmapping= isubmapping< isubmapping<= isubmapping>=
+   imapping-open-interval imapping-closed-interval
+   imapping-open-closed-interval imapping-closed-open-interval
+   isubmapping= isubmapping< isubmapping<= isubmapping>=
    )
 
   (include "trie.scm")
