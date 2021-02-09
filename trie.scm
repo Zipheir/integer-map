@@ -14,7 +14,7 @@
 ;;;; Utility
 
 (define (swap-args proc)
-  (lambda (x y) (proc y x)))
+  (λ (x y) (proc y x)))
 
 (define-record-type <leaf>
   (leaf key value)
@@ -86,7 +86,7 @@
 ;; Insert the association (key, value) into trie, replacing any old
 ;; association.
 (define (trie-insert trie key value)
-  (trie-insert/combine trie key value (lambda (new _) new)))
+  (trie-insert/combine trie key value (λ (new _) new)))
 
 ;; Insert (key, value) into trie if key doesn't already have an
 ;; association.  If it does, add a new association for key and
@@ -95,7 +95,7 @@
   (letrec
    ((new-leaf (leaf key value))
     (insert
-     (lambda (t)
+     (λ (t)
        (match t
          (#f (leaf key value))
          (($ <leaf> k v)
@@ -121,7 +121,7 @@
 (define (trie-adjust trie key proc with-key)
   (letrec
    ((update
-     (lambda (t)
+     (λ (t)
        (match t
          (#f t)
          (($ <leaf> k v)
@@ -139,15 +139,15 @@
 (define (trie-update trie key mproc with-key)
   (letrec
    ((update
-     (lambda (t)
+     (λ (t)
        (match t
          (#f t)
          (($ <leaf> k v)
           (if (fx=? key k)
               (maybe-ref
                (if with-key (mproc k v) (mproc v))
-               (lambda () #f)
-               (lambda (v*) (leaf k v*)))
+               (λ () #f)
+               (λ (v*) (leaf k v*)))
               t))
          (($ <branch> p m l r)
           (if (match-prefix? key p m)
@@ -161,14 +161,14 @@
 (define (trie-alter trie key proc)
   (letrec
    ((update
-     (lambda (t)
+     (λ (t)
        (match t
          (#f #f)
          (($ <leaf> k v)
           (maybe-ref
            (proc (truth->maybe (and (fx=? key k) v)))
-           (lambda () #f)
-           (lambda (v*) (leaf k v*))))
+           (λ () #f)
+           (λ (v*) (leaf k v*))))
          (($ <branch> p m l r)
           (if (match-prefix? key p m)
               (if (zero-bit? key m)
@@ -176,8 +176,8 @@
                   (branch p m l (update r)))
               (maybe-ref
                (proc (nothing))
-               (lambda () t)
-               (lambda (v)
+               (λ () t)
+               (λ (v)
                  (trie-join key 0 (leaf key v) p m t)))))))))
     (update trie)))
 
@@ -202,7 +202,7 @@
 (define (trie-merge combine trie1 trie2)
   (letrec
     ((merge
-      (lambda (s t)
+      (λ (s t)
         (match (list s t)
           ((#f t) t)
           ((s #f) s)
@@ -237,7 +237,7 @@
 (define (trie-partition pred trie with-key)
   (letrec
    ((part
-     (lambda (t)
+     (λ (t)
        (match t
          (#f (values #f #f))
          (($ <leaf> k v)
@@ -253,7 +253,7 @@
 (define (trie-fold-left proc nil trie)
   (letrec
    ((cata
-     (lambda (b t)
+     (λ (b t)
        (match t
          (#f b)
          (($ <leaf> _ v) (proc v b))
@@ -263,7 +263,7 @@
 (define (trie-fold-left/key proc nil trie)
   (letrec
    ((cata
-     (lambda (b t)
+     (λ (b t)
        (match t
          (#f b)
          (($ <leaf> k v) (proc k v b))
@@ -273,7 +273,7 @@
 (define (trie-fold-right proc nil trie)
   (letrec
    ((cata
-     (lambda (b t)
+     (λ (b t)
        (match t
          (#f b)
          (($ <leaf> _ v) (proc v b))
@@ -283,7 +283,7 @@
 (define (trie-fold-right/key proc nil trie)
   (letrec
    ((cata
-     (lambda (b t)
+     (λ (b t)
        (match t
          (#f b)
          (($ <leaf> k v) (proc k v b))
@@ -327,8 +327,8 @@
        (#f #f)
        (($ <leaf> k v)
         (maybe-ref (success k v)
-                   (lambda () #f)
-                   (lambda (v*) (leaf k v*))))
+                   (λ () #f)
+                   (λ (v*) (leaf k v*))))
        (($ <branch> p m l r) (branch p m (update l) r)))))
     (match trie
       (($ <branch> p m l r)
@@ -358,8 +358,8 @@
        (#f #f)
        (($ <leaf> k v)
         (maybe-ref (success k v)
-                   (lambda () #f)
-                   (lambda (v*) (leaf k v*))))
+                   (λ () #f)
+                   (λ (v*) (leaf k v*))))
        (($ <branch> p m l r) (branch p m l (update r))))))
     (match trie
       (($ <branch> p m l r)
@@ -388,7 +388,7 @@
 (define (trie-subset-compare comp trie1 trie2)
   (letrec
    ((compare
-     (lambda (s t)
+     (λ (s t)
        (cond ((eqv? s t) 'equal)
              ((not s) 'less)
              ((not t) 'greater)  ; disjoint
@@ -407,7 +407,7 @@
              ((leaf? t) 'greater)   ; branch / leaf
              (else (compare-branches s t)))))
     (compare-branches
-     (lambda (s t)
+     (λ (s t)
        (let*-branch (((p m sl sr) s) ((q n tl tr) t))
          (cond ((branching-bit-higher? m n) 'greater)
                ((branching-bit-higher? n m)
@@ -434,7 +434,7 @@
 (define (trie-disjoint? trie1 trie2)
   (letrec
    ((disjoint?
-     (lambda (s t)
+     (λ (s t)
        (or (not s)
            (not t)
            (cond ((leaf? s)
@@ -445,7 +445,7 @@
                  ((leaf? t) (not (trie-assoc s (leaf-key t))))
                  (else (branches-disjoint? s t))))))
     (branches-disjoint?
-     (lambda (s t)
+     (λ (s t)
        (let*-branch (((p m sl sr) s) ((q n tl tr) t))
          (cond ((and (fx=? m n) (fx=? p q))
                 (and (disjoint? sl tl) (disjoint? sr tr)))
@@ -463,7 +463,7 @@
 (define (trie-delete trie key)
   (letrec
    ((update
-     (lambda (t)
+     (λ (t)
        (match t
          (#f #f)
          (($ <leaf> k _) (if (fx=? k key) #f t))
@@ -480,7 +480,7 @@
 (define (trie-intersection trie1 trie2)
   (letrec
    ((intersect
-     (lambda (s t)
+     (λ (s t)
        (cond ((or (not s) (not t)) #f)
              ((and (leaf? s) (leaf? t))
               (if (fx=? (leaf-key s) (leaf-key t)) s #f))
@@ -488,7 +488,7 @@
              ((leaf? t) (insert-leaf t s))
              (else (intersect-branches s t)))))
     (insert-leaf
-     (lambda (lf t)
+     (λ (lf t)
        (let*-leaf (((k v) lf))
          (let lp ((t t))
            (cond ((and (leaf? t) (fx=? k (leaf-key t))) lf)
@@ -498,7 +498,7 @@
                          (if (zero-bit? k m) (lp l) (lp r)))))
                  (else #f))))))
     (intersect-branches
-     (lambda (s t)
+     (λ (s t)
        (let*-branch (((p m sl sr) s) ((q n tl tr) t))
          (cond ((branching-bit-higher? m n)
                 (and (match-prefix? q p m)
@@ -518,14 +518,14 @@
 (define (trie-difference trie1 trie2)
   (letrec
    ((difference
-     (lambda (s t)
+     (λ (s t)
        (cond ((not s) #f)
              ((not t) s)
              ((leaf? s) (if (trie-assoc (leaf-key s) t) #f s))
              ((leaf? t) (trie-delete s (leaf-key t)))
              (else (branch-difference s t)))))
     (branch-difference
-     (lambda (s t)
+     (λ (s t)
        (let*-branch (((p m sl sr) s) ((q n tl tr) t))
          (cond ((and (fx=? m n) (fx=? p q))
                 (branch p m (difference sl tl) (difference sr tr)))
@@ -545,7 +545,7 @@
 (define (%trie-insert-xor trie key value)
   (trie-alter trie
               key
-              (lambda (mv)
+              (λ (mv)
                 (if (nothing? mv)
                     (just value)
                     (nothing)))))
@@ -553,7 +553,7 @@
 (define (trie-xor trie1 trie2)
   (letrec
     ((merge
-      (lambda (s t)
+      (λ (s t)
         (cond ((not s) t)
               ((not t) s)
               ((leaf? s)
@@ -562,7 +562,7 @@
                (%trie-insert-xor s (leaf-key t) (leaf-value t)))
               (else (merge-branches s t)))))
      (merge-branches
-      (lambda (s t)
+      (λ (s t)
         (let*-branch (((p m s1 s2) s)
                       ((q n t1 t2) t))
           (cond ((and (fx=? m n) (fx=? p q))
@@ -585,7 +585,7 @@
 (define (subtrie< trie k inclusive)
   (letrec
     ((split
-      (lambda (t)
+      (λ (t)
         (cond ((not t) #f)
               ((leaf? t)
                (let ((tk (leaf-key t)))
@@ -611,7 +611,7 @@
 (define (subtrie> trie k inclusive)
   (letrec
    ((split
-     (lambda (t)
+     (λ (t)
        (cond ((not t) #f)
              ((leaf? t)
               (let ((tk (leaf-key t)))
@@ -638,7 +638,7 @@
 (define (subtrie-interval trie a b low-inclusive high-inclusive)
   (letrec
    ((interval
-     (lambda (t)
+     (λ (t)
        (cond ((not t) #f)
              ((leaf? t)
               (let ((tk (leaf-key t)))
@@ -647,7 +647,7 @@
                      t)))
              (else (branch-interval t)))))
     (branch-interval
-     (lambda (t)
+     (λ (t)
        (let*-branch (((p m l r) t))
          (if (match-prefix? a p m)
              (if (zero-bit? a m)
