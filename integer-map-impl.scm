@@ -164,7 +164,7 @@
 (define (imapping-delete-all imap keys)
   (assume (imapping? imap))
   (assume (or (pair? keys) (null? keys)))
-  (imapping-filter/key (λ (k _) (memv k keys)) imap))
+  (imapping-remove/key (λ (k _) (memv k keys)) imap))
 
 ;; Update the association (key, value) in trie with the result of
 ;; (mproc value), which is a Maybe value.
@@ -373,7 +373,7 @@
   (imapping-filter (λ (v) (not (pred v))) imap))
 
 (define (imapping-remove/key pred imap)
-  (imapping-filter/key (λ (k v) (not (pred v))) imap))
+  (imapping-filter/key (λ (k v) (not (pred k v))) imap))
 
 (define (imapping-partition pred imap)
   (assume (procedure? pred))
