@@ -94,7 +94,7 @@
 (define (imapping-disjoint? imap1 imap2)
   (assume (imapping? imap1))
   (assume (imapping? imap2))
-  (trie-disjoint? (imapping-trie imap1) (imapping-trie imap1)))
+  (trie-disjoint? (imapping-trie imap1) (imapping-trie imap2)))
 
 ;;;; Accessors
 
