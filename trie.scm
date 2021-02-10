@@ -160,15 +160,23 @@
 ;; This is the sane person's trie-search.
 (define (trie-alter trie key proc)
   (letrec
-   ((update
+   ((=key? (λ (k) (fx=? key k)))
+    (update
      (λ (t)
        (match t
-         (#f #f)
+         (#f
+          (maybe-ref (proc (nothing))
+                     (λ () #f)
+                     (λ (v) (leaf key v))))
+         (($ <leaf> (? =key? k) v)
+          (maybe-ref (proc (just v))
+                     (λ () #f)
+                     (λ (v*) (leaf k v*))))
          (($ <leaf> k v)
-          (maybe-ref
-           (proc (truth->maybe (and (fx=? key k) v)))
-           (λ () #f)
-           (λ (v*) (leaf k v*))))
+          (maybe-ref (proc (nothing))
+                     (λ () t)
+                     (λ (u)
+                       (trie-join key 0 (leaf key u) k 0 t))))
          (($ <branch> p m l r)
           (if (match-prefix? key p m)
               (if (zero-bit? key m)
