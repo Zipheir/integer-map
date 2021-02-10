@@ -256,4 +256,64 @@
             (imapping-update/key sparse-imap -8192 (constantly (nothing)))
             -8192))
 
+  ;;; alter
+
+  (test #t (imapping=? default-comp
+                       (imapping 0 'a)
+                       (imapping-alter (imapping 0 'a)
+                                       1
+                                       (constantly (nothing)))))
+  (test #t (imapping=? default-comp
+                       (imapping 0 'a 1 'b)
+                       (imapping-alter (imapping 0 'a)
+                                       1
+                                       (constantly (just 'b)))))
+  (test 101 (imapping-lookup/default
+             (imapping-alter mixed-imap
+                             101
+                             (constantly (just 101)))
+             101
+             #f))
+  (test 101 (imapping-lookup/default
+             (imapping-alter mixed-imap
+                             100
+                             (λ (m) (maybe-map (λ (n) (+ n 1)) m)))
+             100
+             #f))
+  (test 'z (imapping-lookup/default
+            (imapping-alter mixed-imap
+                            100
+                            (constantly (nothing)))
+            100
+            'z))
+  (test -16383 (imapping-lookup/default
+                (imapping-alter sparse-imap
+                                -16384
+                                (λ (m)
+                                  (maybe-map (λ (n) (+ n 1)) m)))
+                -16384
+                #f))
+  (test 'z (imapping-lookup/default
+            (imapping-alter sparse-imap
+                            -16384
+                            (constantly (nothing)))
+            -16384
+            'z))
+
+  ;;; delete-min/-max
+
+  (test #t (imapping=? default-comp
+                       empty-imap
+                       (imapping-delete-min (imapping 0 'a))))
+  (test #f (imapping-contains? (imapping-delete-min letter-imap) 0))
+  (test #f (imapping-contains? (imapping-delete-min sparse-imap) -65536))
+
+  (test #t (imapping=? default-comp
+                       empty-imap
+                       (imapping-delete-max (imapping 0 'a))))
+  (test #f (imapping-contains? (imapping-delete-max letter-imap) 25))
+  (test #f (imapping-contains? (imapping-delete-max sparse-imap) 65536))
+
+  ;;; min/max updaters
+
   )
