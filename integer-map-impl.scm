@@ -354,10 +354,10 @@
 
 (define (imapping-map/key->list proc imap)
   (assume (procedure? proc))
-  (imapping-fold-right (λ (k v us)
-                         (cons (proc k v) us))
-                       '()
-                       imap))
+  (imapping-fold-right/key (λ (k v us)
+                             (cons (proc k v) us))
+                           '()
+                           imap))
 
 (define (imapping-filter pred imap)
   (assume (procedure? pred))
