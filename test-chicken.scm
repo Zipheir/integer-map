@@ -314,6 +314,53 @@
   (test #f (imapping-contains? (imapping-delete-max letter-imap) 25))
   (test #f (imapping-contains? (imapping-delete-max sparse-imap) 65536))
 
-  ;;; min/max updaters
+  ;;; min updaters
 
+  (test 'A (imapping-lookup/default
+            (imapping-update-min letter-imap (constantly (just 'A)))
+            0
+            #f))
+  (test #f (imapping-contains?
+            (imapping-update-min letter-imap (constantly (nothing)))
+            0))
+  (test -65535 (imapping-lookup/default
+                (imapping-update-min sparse-imap (λ (v) (just (+ v 1))))
+                -65536
+                #f))
+
+  (test -200 (imapping-lookup/default
+              (imapping-update-min/key mixed-imap
+                                       (λ (k v) (just (+ k v))))
+              -100
+              #f))
+  (test '(0 a)
+        (imapping-lookup/default
+         (imapping-update-min/key letter-imap (λ (k v) (just (list k v))))
+         0
+         #f))
+
+  ;;; max updaters
+
+  (test 'Z (imapping-lookup/default
+            (imapping-update-max letter-imap (constantly (just 'Z)))
+            25
+            #f))
+  (test #f (imapping-contains?
+            (imapping-update-max letter-imap (constantly (nothing)))
+            25))
+  (test 65537 (imapping-lookup/default
+                (imapping-update-max sparse-imap (λ (v) (just (+ v 1))))
+                65536
+                #f))
+
+  (test 200 (imapping-lookup/default
+             (imapping-update-max/key mixed-imap
+                                      (λ (k v) (just (+ k v))))
+             100
+             #f))
+  (test '(25 z)
+        (imapping-lookup/default
+         (imapping-update-max/key letter-imap (λ (k v) (just (list k v))))
+         25
+         #f))
   )
