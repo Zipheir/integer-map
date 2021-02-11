@@ -18,6 +18,16 @@
 
 (define (first x _) x)
 (define (second _ y) y)
+(define (nth n) (λ args (list-ref args n)))
+
+(define (square x) (* x x))
+
+;; From SRFI 210, reduced.
+(define-syntax value/mv
+  (syntax-rules ()
+    ((value/mv i producer)
+     (let-values ((vs producer))
+       (list-ref vs i)))))
 
 ;;;; Test imappings
 
@@ -49,6 +59,9 @@
           -65536))
 
 (define sparse-imap (alist->imapping sparse-seq))
+
+(define all-test-imaps
+  (list empty-imap mixed-imap letter-imap sparse-imap))
 
 ;;; imapping=? and the alist conversions are used in many other tests,
 ;;; so we test these first.  These also test the basic imapping
@@ -363,4 +376,199 @@
          (imapping-update-max/key letter-imap (λ (k v) (just (list k v))))
          25
          #f))
+  )
+
+(test-group "Whole imappings"
+  (test 0 (imapping-size empty-imap))
+  (test 26 (imapping-size letter-imap))
+
+  (test 0 (imapping-count even? empty-imap))
+  (test 26 (imapping-count symbol? letter-imap))
+  (let ((ss '(f r o b)))
+    (test (length ss) (imapping-count (λ (s) (memv s ss)) letter-imap))
+    (test (- (imapping-size letter-imap) (length ss))
+          (imapping-count (λ (s) (not (memv s ss))) letter-imap)))
+  (test 3 (imapping-count positive? mixed-imap))
+
+  ;;; any?/every?
+
+  (test #f (imapping-any? even? empty-imap))
+  (test #t (imapping-any? positive? mixed-imap))
+  (test #f (imapping-any? odd? sparse-imap))
+  (test #t (imapping-any? negative? sparse-imap))
+
+  (test #t (imapping-every? even? empty-imap))
+  (test #f (imapping-every? positive? mixed-imap))
+  (test #t (imapping-every? even? sparse-imap))
+  (test #f (imapping-every? negative? sparse-imap))
+  )
+
+(test-group "Iterators"
+  ;;; map
+
+  (test #t (imapping=? default-comp
+                       empty-imap
+                       (imapping-map (constantly #t) empty-imap)))
+  (test #t (imapping=? default-comp
+                       mixed-imap
+                       (imapping-map values mixed-imap)))
+  (test #t (imapping=? default-comp
+                       (imapping 0 "" 1 "a" 2 "aa")
+                       (imapping-map (λ (m) (make-string m #\a))
+                                     (imapping 0 0 1 1 2 2))))
+  (test #f (imapping-any? negative? (imapping-map abs sparse-imap)))
+
+  (test #t (imapping=? default-comp
+                       empty-imap
+                       (imapping-map/key (constantly #t) empty-imap)))
+  (test #t (imapping=? default-comp
+                       mixed-imap
+                       (imapping-map/key (nth 1) mixed-imap)))
+  (test #t (imapping=? default-comp
+                       (imapping 0 "" 1 "b" 2 "cc")
+                       (imapping-map/key make-string
+                                         (imapping 0 #\a 1 #\b 2 #\c))))
+
+  ;;; for-each
+
+  (test 26
+        (let ((size 0))
+          (imapping-for-each (λ (_) (set! size (+ size 1))) letter-imap)
+          size))
+  (test '(c b a)
+        (let ((xs '()))
+          (imapping-for-each (λ (x) (set! xs (cons x xs)))
+                             (imapping 0 'a 1 'b 2 'c))
+          xs))
+
+  (test '((2 . c) (1 . b) (0 . a))
+        (let ((xs '()))
+          (imapping-for-each/key (λ (k x) (set! xs (cons (cons k x) xs)))
+                                 (imapping 0 'a 1 'b 2 'c))
+          xs))
+
+  ;;; fold-left
+
+  (test 'z (imapping-fold-left (nth 1) 'z empty-imap))
+  (test (reverse '(a b c d e f g h i j k l m n o p q r s t u v w x y z))
+        (imapping-fold-left cons '() letter-imap))
+  (test (reverse (iota 9 -100 25)) (imapping-fold-left cons '() mixed-imap))
+  (test (fold + 0 (iota 9 -100 25)) (imapping-fold-left + 0 mixed-imap))
+
+  (test (reverse '((0 . "") (1 . "b") (2 . "cc")))
+        (imapping-fold-left/key (λ (k c as)
+                                  (cons (cons k (make-string k c)) as))
+                                '()
+                                (imapping 0 #\a 1 #\b 2 #\c)))
+
+  ;;; fold-right
+
+  (test 'z (imapping-fold-right (nth 1) 'z empty-imap))
+  (test '(a b c d e f g h i j k l m n o p q r s t u v w x y z)
+        (imapping-fold-right cons '() letter-imap))
+  (test (iota 9 -100 25) (imapping-fold-right cons '() mixed-imap))
+  (test (fold + 0 (iota 9 -100 25)) (imapping-fold-right + 0 mixed-imap))
+
+  (test '((0 . "") (1 . "b") (2 . "cc"))
+        (imapping-fold-right/key (λ (k c as)
+                                  (cons (cons k (make-string k c)) as))
+                                 '()
+                                 (imapping 0 #\a 1 #\b 2 #\c)))
+
+  ;;; map->list
+
+  (test #t (null? (imapping-map->list (constantly #t) empty-imap)))
+  (test '(a b c d e f g h i j k l m n o p q r s t u v w x y z)
+        (imapping-map->list values letter-imap))
+  (test (map square (iota 9 -100 25))
+        (imapping-map->list square mixed-imap))
+  (test '("" "a" "aa")
+        (imapping-map->list (λ (n) (make-string n #\a))
+                            (imapping 0 0 1 1 2 2)))
+
+  (test (iota 26) (imapping-map/key->list (nth 0) letter-imap))
+  (test '((0 . "") (1 . "b") (2 . "cc"))
+        (imapping-map/key->list (λ (k c) (cons k (make-string k c)))
+                                (imapping 0 #\a 1 #\b 2 #\c)))
+
+  ;;; filter
+
+  (test #t
+        (every values
+               (map (λ (m)
+                      (imapping=? default-comp
+                                  m
+                                  (imapping-filter (constantly #t) m)))
+                    (list empty-imap letter-imap mixed-imap sparse-imap))))
+  (test #t
+        (every imapping-empty?
+               (map (λ (m) (imapping-filter (constantly #f) m))
+                    (list empty-imap letter-imap mixed-imap sparse-imap))))
+  (test #t (imapping=? default-comp
+                       (imapping 25 25 50 50 75 75 100 100)
+                       (imapping-filter positive? mixed-imap)))
+  (test #t (imapping=? default-comp
+                       (imapping 22 'w)
+                       (imapping-filter (λ (s) (eqv? s 'w)) letter-imap)))
+
+  (test #t
+        (every values
+               (map (λ (m)
+                      (imapping=? default-comp
+                                  m
+                                  (imapping-filter/key (constantly #t) m)))
+                    (list empty-imap letter-imap mixed-imap sparse-imap))))
+  (test #t
+        (every imapping-empty?
+               (map (λ (m) (imapping-filter/key (constantly #f) m))
+                    (list empty-imap letter-imap mixed-imap sparse-imap))))
+  (test #t (imapping=? default-comp
+                       (imapping 25 25 75 75)
+                       (imapping-filter/key (λ (k v)
+                                              (and (odd? k) (positive? v)))
+                                            mixed-imap)))
+
+  ;;; remove
+
+  (test #t
+        (every values
+               (map (λ (m) (imapping=? default-comp
+                                       m
+                                       (imapping-remove (constantly #f) m)))
+                    (list empty-imap letter-imap mixed-imap sparse-imap))))
+  (test #t
+        (every imapping-empty?
+               (map (λ (m) (imapping-remove (constantly #t) m))
+                    (list empty-imap letter-imap mixed-imap sparse-imap))))
+  (test #t (imapping=? default-comp
+                       (imapping 0 0 25 25 50 50 75 75 100 100)
+                       (imapping-remove negative? mixed-imap)))
+  (test #t (imapping=? default-comp
+                 (imapping 22 'w)
+                 (imapping-remove (λ (s) (not (eqv? s 'w))) letter-imap)))
+
+  (test #t
+        (every (λ (m)
+                 (imapping=? default-comp
+                             m
+                             (imapping-remove/key (constantly #f) m)))
+               all-test-imaps))
+  (test #t
+        (every imapping-empty?
+               (map (λ (m) (imapping-remove/key (constantly #t) m))
+                    (list empty-imap letter-imap mixed-imap sparse-imap))))
+  (test #t (imapping=? default-comp
+                       (imapping -100 -100 -50 -50 0 0)
+                       (imapping-remove/key (λ (k v)
+                                              (or (odd? k) (positive? v)))
+                                            mixed-imap)))
+
+  ;;; partition
+
+  (test #t
+        (every (λ (m)
+                 (imapping=? default-comp
+                             m
+                             (value/mv 0 (imapping-partition values m))))
+               all-test-imaps))
   )
