@@ -243,6 +243,14 @@
                       0
                       imap))
 
+(define (imapping-count/key pred imap)
+  (assume (procedure? pred))
+  (imapping-fold-left/key
+   (λ (k v sum)
+     (if (pred k v) (+ 1 sum) sum))
+   0
+   imap))
+
 (define (imapping-any? pred imap)
   (assume (procedure? pred))
   (call-with-current-continuation

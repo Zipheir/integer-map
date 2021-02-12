@@ -390,6 +390,9 @@
           (imapping-count (λ (s) (not (memv s ss))) letter-imap)))
   (test 3 (imapping-count positive? mixed-imap))
 
+  (test 2 (imapping-count/key (λ (k v) (and (even? k) (positive? v)))
+                              mixed-imap))
+
   ;;; any?/every?
 
   (test #f (imapping-any? even? empty-imap))

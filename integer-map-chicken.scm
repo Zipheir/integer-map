@@ -13,6 +13,7 @@
    imapping-update-min/key imapping-update-max/key
    imapping-size
    imapping-count
+   imapping-count/key
    imapping-any? imapping-every?
    imapping-keys imapping-values
    imapping-fold-left imapping-fold-right
