@@ -567,8 +567,28 @@
 
   (test #t
         (every (λ (m)
-                 (imapping=? default-comp
-                             m
-                             (value/mv 0 (imapping-partition values m))))
+                 (imapping=?
+                  default-comp
+                  m
+                  (value/mv 0 (imapping-partition (constantly #t) m))))
                all-test-imaps))
+  (test (call-with-values (λ () (partition even? (map car mixed-seq)))
+                          list)
+        (let-values (((em om) (imapping-partition even? mixed-imap)))
+          (list (imapping-values em) (imapping-values om))))
+  (test #t
+        (let-values (((zm not-zm) (imapping-partition (λ (s) (eqv? s 'z))
+                                                      letter-imap)))
+          (and (imapping=? default-comp zm (imapping 25 'z))
+               (imapping=? default-comp
+                           not-zm
+                           (imapping-delete letter-imap 25)))))
+
+  (test (unfold (λ (i) (= i 26))
+                (λ (i) (string->symbol (string (integer->char (+ i #x61)))))
+                (λ (i) (+ i 2))
+                0)
+        (let-values (((em _) (imapping-partition/key (λ (k _) (even? k))
+                                                     letter-imap)))
+          (imapping-values em)))
   )
