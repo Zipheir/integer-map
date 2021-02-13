@@ -720,7 +720,7 @@
         (imapping->alist
          (imapping-open-closed-interval sparse-imap -12288 12288)))
 
-  (test '((-50 . -50) (-25 . -25) (0 . 0) (25 . 25))
+  (test (list->dup-alist '(-50 -25 0 25))
         (imapping->alist
          (imapping-closed-open-interval mixed-imap -50 50)))
   (test '((5 . f) (6 . g) (7 . h) (8 . i) (9 . j))
@@ -729,4 +729,39 @@
   (test (list->dup-alist '(-12288 -8192 -4096 0 4096 8192))
         (imapping->alist
          (imapping-closed-open-interval sparse-imap -12288 12288)))
+  )
+
+(test-group "Submappings"
+  (test '((100 . 100)) (imapping->alist (isubmapping= mixed-imap 100)))
+  (test '((7 . h)) (imapping->alist (isubmapping= letter-imap 7)))
+  (test '((16384 . 16384)) (imapping->alist (isubmapping= sparse-imap 16384)))
+  (test #t (imapping-empty? (isubmapping= sparse-imap 1)))
+
+  (test (list->dup-alist '(-100 -75 -50 -25))
+        (imapping->alist (isubmapping< mixed-imap 0)))
+  (test '((0 . a) (1 . b) (2 . c))
+        (imapping->alist (isubmapping< letter-imap 3)))
+  (test (list->dup-alist '(-65536 -61440 -57344))
+        (imapping->alist (isubmapping< sparse-imap -53248)))
+
+  (test (list->dup-alist '(25 50 75 100))
+        (imapping->alist (isubmapping> mixed-imap 0)))
+  (test '((23 . x) (24 . y) (25 . z))
+        (imapping->alist (isubmapping> letter-imap 22)))
+  (test (list->dup-alist '(57344 61440 65536))
+        (imapping->alist (isubmapping> sparse-imap 53248)))
+
+  (test (list->dup-alist '(-100 -75 -50 -25 0))
+        (imapping->alist (isubmapping<= mixed-imap 0)))
+  (test '((0 . a) (1 . b) (2 . c) (3 . d))
+        (imapping->alist (isubmapping<= letter-imap 3)))
+  (test (list->dup-alist '(-65536 -61440 -57344 -53248))
+        (imapping->alist (isubmapping<= sparse-imap -53248)))
+
+  (test (list->dup-alist '(0 25 50 75 100))
+        (imapping->alist (isubmapping>= mixed-imap 0)))
+  (test '((22 . w) (23 . x) (24 . y) (25 . z))
+        (imapping->alist (isubmapping>= letter-imap 22)))
+  (test (list->dup-alist '(53248 57344 61440 65536))
+        (imapping->alist (isubmapping>= sparse-imap 53248)))
   )
