@@ -617,5 +617,19 @@
     (test #f (imapping>=? default-comp subimap mixed-imap))
     (test #t (imapping>=? default-comp mixed-imap subimap))
     (test #t (imapping>=? default-comp mixed-imap mixed-imap))
-    )
+
+    ;; Variadic comparisons.
+    (let ((subimap1 (imapping-filter positive? subimap)))
+      (test #t (imapping<? default-comp subimap1 subimap mixed-imap))
+      (test #f (imapping<? default-comp subimap1 empty-imap mixed-imap))
+
+      (test #t (imapping>? default-comp mixed-imap subimap subimap1))
+      (test #f (imapping>? default-comp mixed-imap empty-imap subimap1))
+
+      (test #t (imapping<=? default-comp subimap1 subimap subimap mixed-imap))
+      (test #f (imapping<=? default-comp subimap1 empty-imap mixed-imap))
+
+      (test #t (imapping>=? default-comp mixed-imap subimap subimap subimap1))
+      (test #f (imapping>=? default-comp mixed-imap empty-imap subimap1))
+      ))
   )
