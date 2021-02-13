@@ -529,7 +529,7 @@
      (λ (s t)
        (cond ((not s) #f)
              ((not t) s)
-             ((leaf? s) (if (trie-assoc (leaf-key s) t) #f s))
+             ((leaf? s) (if (trie-assoc t (leaf-key s)) #f s))
              ((leaf? t) (trie-delete s (leaf-key t)))
              (else (branch-difference s t)))))
     (branch-difference
