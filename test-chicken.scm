@@ -633,3 +633,55 @@
       (test #f (imapping>=? default-comp mixed-imap empty-imap subimap1))
       ))
   )
+
+(test-group "Set theory"
+  (let ((imap1 (imapping -5 'a -2 'b 1 'c))
+        (imap2 (imapping -2 'b 3 'd 5 'e))
+        (imap3 (imapping 3 'd 5 'g 7 'f)))  ; assoc for 5 differs from imap2
+    (test #t (imapping=? default-comp
+                         sparse-imap
+                         (imapping-union sparse-imap empty-imap)))
+    (test #t (imapping=? default-comp
+                         (imapping -5 'a -2 'b 1 'c 3 'd 5 'e)
+                         (imapping-union imap1 imap2)))
+    (test #t (imapping=? default-comp
+                         (imapping -2 'b 3 'd 5 'e 7 'f)
+                         (imapping-union imap2 imap3)))
+    (test #t (imapping=? default-comp
+                         (imapping -5 'a -2 'b 1 'c 3 'd 5 'e 7 'f)
+                         (imapping-union imap1 imap2 imap3)))
+
+    (test #t (imapping-empty? (imapping-intersection sparse-imap empty-imap)))
+    (test #t (imapping=? default-comp
+                         (imapping -2 'b)
+                         (imapping-intersection imap1 imap2)))
+    (test #t (imapping=? default-comp
+                         (imapping 3 'd 5 'e)
+                         (imapping-intersection imap2 imap3)))
+    (test #t (imapping=? default-comp
+                         (imapping -2 'b)
+                         (imapping-intersection imap1 imap2 (imapping -2 'b))))
+
+    (test #t (imapping=? default-comp
+                         sparse-imap
+                         (imapping-difference sparse-imap empty-imap)))
+    (test #t (imapping=? default-comp
+                         (imapping -5 'a 1 'c)
+                         (imapping-difference imap1 imap2)))
+    (test #t (imapping=? default-comp
+                         (imapping -2 'b)
+                         (imapping-difference imap2 imap3)))
+    (test #t (imapping=? default-comp
+                         (imapping -5 'a 1 'c)
+                         (imapping-difference imap1 imap2 imap3)))
+
+    (test #t (imapping=? default-comp
+                         sparse-imap
+                         (imapping-xor sparse-imap empty-imap)))
+    (test #t (imapping=? default-comp
+                         (imapping -5 'a 1 'c 3 'd 5 'e)
+                         (imapping-xor imap1 imap2)))
+    (test #t (imapping=? default-comp
+                         (imapping -2 'b 7 'f)
+                         (imapping-xor imap2 imap3)))
+    ))
