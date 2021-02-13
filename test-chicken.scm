@@ -595,3 +595,27 @@
                                                      letter-imap)))
           (imapping-values em)))
   )
+
+(test-group "Comparison"
+  (let ((subimap (imapping-filter even? mixed-imap)))
+    (test #t (imapping<? default-comp (imapping) mixed-imap))
+    (test #t (imapping<? default-comp subimap mixed-imap))
+    (test #f (imapping<? default-comp mixed-imap subimap))
+    (test #f (imapping<? default-comp mixed-imap mixed-imap))
+
+    (test #t (imapping>? default-comp mixed-imap (imapping)))
+    (test #f (imapping>? default-comp subimap mixed-imap))
+    (test #t (imapping>? default-comp mixed-imap subimap))
+    (test #f (imapping>? default-comp mixed-imap mixed-imap))
+
+    (test #t (imapping<=? default-comp (imapping) mixed-imap))
+    (test #t (imapping<=? default-comp subimap mixed-imap))
+    (test #f (imapping<=? default-comp mixed-imap subimap))
+    (test #t (imapping<=? default-comp mixed-imap mixed-imap))
+
+    (test #t (imapping>=? default-comp mixed-imap (imapping)))
+    (test #f (imapping>=? default-comp subimap mixed-imap))
+    (test #t (imapping>=? default-comp mixed-imap subimap))
+    (test #t (imapping>=? default-comp mixed-imap mixed-imap))
+    )
+  )
