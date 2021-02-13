@@ -22,6 +22,9 @@
 
 (define (square x) (* x x))
 
+(define (list->dup-alist xs)
+  (map cons xs xs))
+
 ;; From SRFI 210, reduced.
 (define-syntax value/mv
   (syntax-rules ()
@@ -685,3 +688,45 @@
                          (imapping -2 'b 7 'f)
                          (imapping-xor imap2 imap3)))
     ))
+
+(test-group "Intervals"
+  (test (list->dup-alist '(-25 0 25))
+        (imapping->alist
+         (imapping-open-interval mixed-imap -50 50)))
+  (test '((6 . g) (7 . h) (8 . i) (9 . j))
+        (imapping->alist
+         (imapping-open-interval letter-imap 5 10)))
+  (test (list->dup-alist '(-8192 -4096 0 4096 8192))
+        (imapping->alist
+         (imapping-open-interval sparse-imap -12288 12288)))
+
+  (test (list->dup-alist '(-50 -25 0 25 50))
+        (imapping->alist
+         (imapping-closed-interval mixed-imap -50 50)))
+  (test '((5 . f) (6 . g) (7 . h) (8 . i) (9 . j) (10 . k))
+        (imapping->alist
+         (imapping-closed-interval letter-imap 5 10)))
+  (test (list->dup-alist '(-12288 -8192 -4096 0 4096 8192 12288))
+        (imapping->alist
+         (imapping-closed-interval sparse-imap -12288 12288)))
+
+  (test (list->dup-alist '(-25 0 25 50))
+        (imapping->alist
+         (imapping-open-closed-interval mixed-imap -50 50)))
+  (test '((6 . g) (7 . h) (8 . i) (9 . j) (10 . k))
+        (imapping->alist
+         (imapping-open-closed-interval letter-imap 5 10)))
+  (test (list->dup-alist '(-8192 -4096 0 4096 8192 12288))
+        (imapping->alist
+         (imapping-open-closed-interval sparse-imap -12288 12288)))
+
+  (test '((-50 . -50) (-25 . -25) (0 . 0) (25 . 25))
+        (imapping->alist
+         (imapping-closed-open-interval mixed-imap -50 50)))
+  (test '((5 . f) (6 . g) (7 . h) (8 . i) (9 . j))
+        (imapping->alist
+         (imapping-closed-open-interval letter-imap 5 10)))
+  (test (list->dup-alist '(-12288 -8192 -4096 0 4096 8192))
+        (imapping->alist
+         (imapping-closed-open-interval sparse-imap -12288 12288)))
+  )
