@@ -1,4 +1,8 @@
 ;;; Generic test framework using SRFI 78.
+(import (srfi 1)
+        (srfi 128)
+        (srfi 189)
+        (integer-map))
 
 (cond-expand
   ((library (srfi 78))
