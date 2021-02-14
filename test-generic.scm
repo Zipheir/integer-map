@@ -6,6 +6,8 @@
 
 (define default-comp (make-default-comparator))
 
+(define (constantly x) (lambda _ x))
+
 (define (first x _) x)
 (define (second _ y) y)
 (define (nth n) (λ args (list-ref args n)))
