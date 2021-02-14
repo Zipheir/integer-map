@@ -2,9 +2,7 @@
 
 This library defines integer mappings, which are structures that
 define a set of associations between exact integers and arbitrary
-Scheme objects.
-
-This library's interface is inspired by SRFI 146 and by Haskell's
+Scheme objects.  The interface is inspired by SRFI 146 and by Haskell's
 IntMap library.
 
 Many functions make use of Maybe values.  See SRFI 189 for details
@@ -15,7 +13,9 @@ change.
 
 # Constructors
 
-`(imapping arg ...)`
+`(imapping n1 v1 n2 …)`
+
+`int * int … → imapping`
 
 Returns a new imapping.  The args alternate between keys (which
 must be exact integers) and values (which may be anything); the
@@ -112,20 +112,20 @@ Nothing.
 
 # Updaters
 
-`(imapping-adjoin imap n1 v1 n2 ...)`
+`(imapping-adjoin imap n1 v1 n2 …)`
 
-`imapping int * int ... → imapping`
+`imapping int * int … → imapping`
 
 Returns a new imapping containing all of the associations of
-*imap* as well as the associations *(n1, v1)*, *(n2, v2)*, ...
+*imap* as well as the associations *(n1, v1)*, *(n2, v2)*, …
 The number of key/value arguments must be even.
 
 If any of the *ni* already have associations in *imap*, they are
 replaced.
 
-`(imapping-adjoin/combine imap proc n1 v1 n2 ...)`
+`(imapping-adjoin/combine imap proc n1 v1 n2 …)`
 
-`imapping (* * → *) int * int ... → imapping`
+`imapping (* * → *) int * int … → imapping`
 
 Similar to `imapping-adjoin`, except that duplicate associations
 are combined with *proc*.  This procedure is called on the new and
