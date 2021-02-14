@@ -1,12 +1,7 @@
-(include "integer-map-chicken.scm")
-
 (import (srfi 1)
         (srfi 128)
         (srfi 189)
-        (chicken base)
         (integer-map))
-
-(import (test))
 
 (define-syntax λ
   (syntax-rules ()
