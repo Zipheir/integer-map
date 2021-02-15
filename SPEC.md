@@ -15,7 +15,7 @@ change.
 
 `(imapping n1 v1 n2 …)`
 
-`int * int … → imapping`
+int * int … → imapping
 
 Returns a new imapping.  The args alternate between keys (which
 must be exact integers) and values (which may be anything); the
@@ -58,25 +58,25 @@ Returns a new imapping containing the associations of *alist*.
 
 `(imapping? obj)`
 
-`* → boolean`
+* → boolean
 
 Returns `#t` iff *obj* is an imapping.
 
 `(imapping-contains? imap n)`
 
-`imapping int → boolean`
+imapping int → boolean
 
 Returns `#t` iff *imap* contains an association for key *n*.
 
 `(imapping-empty? imap)`
 
-`imapping → boolean`
+imapping → boolean
 
 Returns `#t` iff *imap* contains no associations.
 
 `(imapping-disjoint? imap1 imap2)`
 
-`imapping imapping → boolean`
+imapping imapping → boolean
 
 Returns `#t` iff *imap1* and *imap* have no keys in common.
 
@@ -84,21 +84,21 @@ Returns `#t` iff *imap1* and *imap* have no keys in common.
 
 `(imapping-lookup imap n)`
 
-`imapping int → maybe[*]`
+imapping int → maybe[*]
 
 If an association *(n, v)* occurs in *imap*, returns Just *v*.
 Otherwise, returns Nothing.
 
 `(imapping-lookup-default imap n obj)`
 
-`imapping int * → *`
+imapping int * → *
 
 If an association *(n, v)* occurs in *imap*, returns Just *v*.
 Otherwise, returns *obj*.
 
 `(imapping-min imap)`
 
-`imapping → maybe[*]`
+imapping → maybe[*]
 
 Returns Just *n* *v*, where *n* is the least key of *imap*.
 If *imap* is empty in the sense of `imapping-empty?`, returns
@@ -106,7 +106,7 @@ Nothing.
 
 `(imapping-max imap)`
 
-`imapping → maybe[*]`
+imapping → maybe[*]
 
 Returns Just *n* *v*, where *n* is the greatest key of *imap*.
 If *imap* is empty in the sense of `imapping-empty?`, returns
@@ -116,7 +116,7 @@ Nothing.
 
 `(imapping-adjoin imap n1 v1 n2 …)`
 
-`imapping int * int … → imapping`
+imapping int * int … → imapping
 
 Returns a new imapping containing all of the associations of
 *imap* as well as the associations *(n1, v1)*, *(n2, v2)*, …
@@ -127,7 +127,7 @@ replaced.
 
 `(imapping-adjoin/combine imap proc n1 v1 n2 …)`
 
-`imapping (* * → *) int * int … → imapping`
+imapping (* * → *) int * int … → imapping
 
 Similar to `imapping-adjoin`, except that duplicate associations
 are combined with *proc*.  This procedure is called on the new and
@@ -136,11 +136,11 @@ expected to return a value for the key.
 
 `(imapping-adjust imap n proc)`
 
-`imapping int (* → *) → imapping`
+imapping int (* → *) → imapping
 
 `(imapping-adjust/key imap n proc)`
 
-`imapping int (int * → *) → imapping`
+imapping int (int * → *) → imapping
 
 Returns a new imapping in which the association *(n, v)* in *imap*
 is replaced by *(n, (proc v))*, or by *(n, (proc n v))* in the
