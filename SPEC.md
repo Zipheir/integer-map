@@ -28,9 +28,11 @@ args, earlier associations take priority.
 Unfold a new imapping.  `mapper` is applied to each seed and returns
 two values, a key and an associated value.
 
-`(imapping-unfold-maybe proc seed)`
+`(imapping-unfold-maybe mproc seed)`
 
-Unfold a new imapping.  `proc` is applied to each seed and returns
+(* → maybe[* * *]) * → imapping
+
+Unfold a new imapping.  *mproc* is applied to *seed* and returns
 a Maybe value.  If this value is Nothing, then unfolding terminates.
 If it is a Just of three values *k, v, seed′*, then a new association
 (*k*, *v*) is added to the resulting imapping and unfolding continues
