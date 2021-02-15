@@ -144,3 +144,100 @@ Returns a new imapping in which the association *(n, v)* in *imap*
 is replaced by *(n, (proc v))*, or by *(n, (proc n v))* in the
 case of `imapping-adjust/key`.  If *n* has no association in *imap*,
 then (a copy of) *imap* is returned.
+
+`(imapping-delete imap n1 n2 ...)`
+
+imapping int int ... → imapping
+
+Returns a new imapping with the same associations as *imap*, except
+those for keys equal to *n1, n2, ...*.  If an *ni* does not have an
+association in *imap*, it is ignored.
+
+`(imapping-delete-all imap ns)`
+
+imapping list[int] → imapping
+
+Returns a new imapping with the same associations as *imap*, except
+those for keys equal to an element of *ns*.
+
+`(imapping-update imap n mproc)`
+
+imapping int (* → maybe[*]) → imapping
+
+`(imapping-update/key imap n mproc)`
+
+imapping int (n * → maybe[*]) → imapping
+
+Returns a new imapping with the same associations as *imap*, except
+that the association for *n* is updated as follows.  *mproc* is
+applied to the value associated with *n* and is expected to return
+a Maybe value.  If it returns Nothing, the association is deleted;
+if it returns Just *v*, then *(n, v)* is added to the new imapping.
+
+`imapping-update/key` is the same as `imapping-update`, except that
+*mproc* is called on *n* and its associated value, in that order.
+
+Simple versions of several other update operations may be defined
+in terms of `imapping-update`, e.g.:
+
+    (imapping-delete imap n)
+     ≡
+    (imapping-update imap n (λ (_) (nothing)))
+
+    (imapping-adjoin imap n v)
+     ≡
+    (imapping-update imap n (λ (_) (just v)))
+
+`(imapping-alter imap n proc)`
+
+imapping int (maybe * → maybe *) → imapping
+
+Returns a new imapping with the same associations as *imap*, except
+that the association, or lack thereof, for *n* is updated as follows.
+If the association *(n, v)* exists in *imap*, then *proc* is called on
+Just *v*; if no such association exists, then *proc* is called on
+Nothing.  If the result of this application is Nothing, the
+association is deleted (or no new association is added); if the result
+is Just *v′*, a new association *(n, v′)* is added to the new
+imapping, replacing any old association for *n*.
+
+`imapping-alter` is a very general operator on imappings, and most
+of the other update operations may be defined in terms of it.
+
+      (imapping-update imap n f)
+    ≡
+      (imapping-alter imap n (λ (m)
+                               (maybe-ref m
+                                          nothing
+                                          (λ (v) (f v)))))
+
+`(imapping-delete-min imap)`
+`(imapping-delete-max imap)`
+
+imapping → imapping
+
+Returns a new imapping with the same associations as *imap*, except
+for the association with the least/greatest key.  If *imap* is empty,
+returns an empty imapping.
+
+`(imapping-update-min imap mproc)`
+`(imapping-update-max imap mproc)`
+
+imapping (* → maybe[*]) → imapping
+
+`(imapping-update-min/key imap mproc)`
+`(imapping-update-max/key imap mproc)`
+
+imapping (int * → maybe[*]) → imapping
+
+Returns a new imapping with the same associations as *imap*, except
+that the association for the least/greatest key *n* is updated as
+follows.  *mproc* is applied to the value associated with *n* and is
+expected to return a Maybe value.  If it returns Nothing, the
+association is deleted; if it returns Just *v*, then *(n, v)* is added
+to the new imapping.
+
+`imapping-update-min/key` and `imapping-update-max/key` are the same
+as `imapping-update-min` and `imapping-update-max`, respectively,
+except that *mproc* is called on *n* and its associated value, in that
+order.
