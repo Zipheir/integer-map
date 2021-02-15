@@ -50,6 +50,8 @@ may clarify things:
 
 `(alist->imapping alist)`
 
+list[(int . *)] → imapping
+
 Returns a new imapping containing the associations of *alist*.
 
 # Predicates
