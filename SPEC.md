@@ -245,3 +245,108 @@ to the new imapping.
 as `imapping-update-min` and `imapping-update-max`, respectively,
 except that *mproc* is called on *n* and its associated value, in that
 order.
+
+# Size
+
+`(imapping-size imap)`
+
+imapping → int
+
+Returns the number of associations in *imap*.
+
+# Traversal
+
+`(imapping-count pred imap)`
+
+(* → boolean) imapping → int
+
+`(imapping-count/key pred imap)`
+
+(int * → boolean) imapping → int
+
+Returns the number of associations in *imap* whose values satisfy
+*pred*.
+
+`imapping-count/key` is the same, except that *pred* is called on
+the key and value of each association.
+
+`(imapping-any? pred imap)`
+
+(* → boolean) imapping → boolean
+
+Returns `#t` iff there exists an association in *imap* whose value
+satisfies *pred*.  *imap* is traversed in ascending numerical order
+of keys.
+
+`(imapping-every? pred imap)`
+
+(* → boolean) imapping → boolean
+
+Returns `#t` iff the value of every association in *imap* satisfies
+*pred*, or if *imap* is empty.  *imap* is traversed in ascending
+numerical order of keys.
+
+`(imapping-map proc imap)`
+
+(* → *) imapping → imapping
+
+`(imapping-map/key proc imap)`
+
+(n * → *) imapping → imapping
+
+Returns a new imapping.  For each association *(n, v)* in *imap*,
+the association *(n, (proc v))* is added to the new imapping.
+Associations are traversed in an arbitrary order.
+
+`imapping-map/key` is the same, except that *proc* is called on
+the key and value of each association.
+
+Note that, in contrast to SRFI 146's map procedures, these procedures
+transform the values of *imap* only; that is, the set of keys of the
+resulting imapping are the same as that of *imap*.
+
+`(imapping-for-each proc imap)`
+
+(* → *) imapping → <unspecified>
+
+`(imapping-for-each/key proc imap)`
+
+(int * → *) imapping → <unspecified>
+
+Calls *proc* on the value of each association in *imap* and returns
+an unspecified value.  *imap* in traversed in ascending numerical
+order of keys.
+
+`imapping-for-each/key` is the same, except that *proc* is called on
+the key and value of each association.
+
+`(imapping-fold-left kons knil imap)`
+`(imapping-fold-right kons knil imap)`
+
+(* * → *) * imapping → *
+
+`(imapping-fold-left/key kons knil imap)`
+`(imapping-fold-right/key kons knil imap)`
+
+(int * * → *) * imapping → *
+
+Folds *proc* over *imap*, using *knil* as the base value.
+`imapping-fold-left` folds in ascending numerical order of keys;
+`imapping-fold-right` folds in descending order.
+
+`imapping-fold-left/key` and `imapping-fold-right/key` are the same
+as `imapping-fold-left` and `imapping-fold-right`, respectively,
+except that *proc* is also passed the key of each association.
+
+`(imapping-map->list proc imap)`
+
+(* → *) imapping → list[*]
+
+`(imapping-map/key->list proc imap)`
+
+(n * → *) imapping → list[*]
+
+Fusion of `(imapping-values (imapping-map` *proc* *imap*`)`.
+
+`imapping-map/key->list` is the same, except that *proc* is called on
+the key and value of each association.
