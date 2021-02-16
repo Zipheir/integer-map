@@ -292,7 +292,7 @@ numerical order of keys.
 
 `(imapping-map/key proc imap)`
 
-(n * → *) imapping → imapping
+(int * → *) imapping → imapping
 
 Returns a new imapping.  For each association *(n, v)* in *imap*,
 the association *(n, (proc v))* is added to the new imapping.
@@ -307,11 +307,11 @@ resulting imapping are the same as that of *imap*.
 
 `(imapping-for-each proc imap)`
 
-(* → *) imapping → <unspecified>
+(* → *) imapping → unspecified
 
 `(imapping-for-each/key proc imap)`
 
-(int * → *) imapping → <unspecified>
+(int * → *) imapping → unspecified
 
 Calls *proc* on the value of each association in *imap* and returns
 an unspecified value.  *imap* in traversed in ascending numerical
@@ -344,9 +344,9 @@ except that *proc* is also passed the key of each association.
 
 `(imapping-map/key->list proc imap)`
 
-(n * → *) imapping → list[*]
+(int * → *) imapping → list[*]
 
-Fusion of `(imapping-values (imapping-map` *proc* *imap*`)`.
+Fusion of `(imapping-values (imapping-map proc imap)`.
 
 `imapping-map/key->list` is the same, except that *proc* is called on
 the key and value of each association.
