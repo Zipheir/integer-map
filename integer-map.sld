@@ -55,10 +55,5 @@
    isubmapping>
    )
 
-  (begin
-   (define-syntax λ
-     (syntax-rules ()
-       ((λ . rest) (lambda . rest)))))
-
   (include "trie.scm")
   (include "integer-map-impl.scm"))

@@ -42,11 +42,6 @@
           (srfi 189)
           (matchable))
 
-  (begin
-   (define-syntax λ
-     (syntax-rules ()
-       ((λ . rest) (lambda . rest)))))
-
   ;; R7RS shim
   (define exact inexact->exact)
 

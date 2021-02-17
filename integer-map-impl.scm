@@ -32,7 +32,7 @@
 (define (second _ y) y)
 
 (define (constantly x)
-  (λ _ x))
+  (lambda _ x))
 
 ;;;; Type
 
@@ -45,7 +45,7 @@
 
 (define (imapping . args)
   (raw-imapping
-    (plist-fold (λ (k v trie)
+    (plist-fold (lambda (k v trie)
                   (trie-insert/combine trie k v second))
                 #f
                 args)))
@@ -76,8 +76,8 @@
   (let lp ((trie #f) (seed seed))
     (maybe-ref
      (proc seed)
-     (λ () (raw-imapping trie))
-     (λ (k v seed*)
+     (lambda () (raw-imapping trie))
+     (lambda (k v seed*)
        (lp (trie-insert trie k v) seed*)))))
 
 ;;;; Predicates
@@ -123,7 +123,7 @@
       (trie-insert/combine (imapping-trie imap) key value combine)))
     ((imap combine . ps)
      (raw-imapping
-      (plist-fold (λ (k v t)
+      (plist-fold (lambda (k v t)
                     (trie-insert/combine t k v combine))
                   (imapping-trie imap)
                   ps)))))
@@ -135,7 +135,7 @@
       (trie-insert (imapping-trie imap) key value)))
     ((imap . ps)
      (raw-imapping
-      (plist-fold (λ (k v t) (trie-insert t k v))
+      (plist-fold (lambda (k v t) (trie-insert t k v))
                   (imapping-trie imap)
                   ps)))))
 
@@ -164,7 +164,7 @@
 (define (imapping-delete-all imap keys)
   (assume (imapping? imap))
   (assume (or (pair? keys) (null? keys)))
-  (imapping-remove/key (λ (k _) (memv k keys)) imap))
+  (imapping-remove/key (lambda (k _) (memv k keys)) imap))
 
 ;; Update the association (key, value) in trie with the result of
 ;; (mproc value), which is a Maybe value.
@@ -198,7 +198,7 @@
 ;; Call success on the value of the element of `imap' with the least
 ;; key and use the value, a Maybe, to update the mapping.
 (define (imapping-update-min imap success)
-  (imapping-update-min/key imap (λ (_ v) (success v))))
+  (imapping-update-min/key imap (lambda (_ v) (success v))))
 
 ;; Call success on the least key and corresponding value of `imap'
 ;; and use the value, a Maybe, to update the mapping.
@@ -216,7 +216,7 @@
 ;; Call success on the value of the element of `imap' with the
 ;; greatest key and use the value, a Maybe, to update the mapping.
 (define (imapping-update-max imap success)
-  (imapping-update-max/key imap (λ (_ v) (success v))))
+  (imapping-update-max/key imap (lambda (_ v) (success v))))
 
 ;; Call success on the greatest key and corresponding value of `imap'
 ;; and use the value, a Maybe, to update the mapping.
@@ -238,7 +238,7 @@
 
 (define (imapping-count pred imap)
   (assume (procedure? pred))
-  (imapping-fold-left (λ (v acc)
+  (imapping-fold-left (lambda (v acc)
                         (if (pred v) (+ 1 acc) acc))
                       0
                       imap))
@@ -246,7 +246,7 @@
 (define (imapping-count/key pred imap)
   (assume (procedure? pred))
   (imapping-fold-left/key
-   (λ (k v sum)
+   (lambda (k v sum)
      (if (pred k v) (+ 1 sum) sum))
    0
    imap))
@@ -254,8 +254,8 @@
 (define (imapping-any? pred imap)
   (assume (procedure? pred))
   (call-with-current-continuation
-   (λ (return)
-     (imapping-fold-left (λ (v _)
+   (lambda (return)
+     (imapping-fold-left (lambda (v _)
                            (and (pred v) (return #t)))
                          #f
                          imap))))
@@ -263,8 +263,8 @@
 (define (imapping-every? pred imap)
   (assume (procedure? pred))
   (call-with-current-continuation
-   (λ (return)
-     (imapping-fold-left (λ (v _)
+   (lambda (return)
+     (imapping-fold-left (lambda (v _)
                            (or (pred v) (return #f)))
                          #t
                          imap))))
@@ -277,7 +277,7 @@
 (define (imapping-map proc imap)
   (assume (procedure? proc))
   (raw-imapping
-   (imapping-fold-left/key (λ (k v t)
+   (imapping-fold-left/key (lambda (k v t)
                              (trie-insert t k (proc v)))
                            #f
                            imap)))
@@ -285,7 +285,7 @@
 (define (imapping-map/key proc imap)
   (assume (procedure? proc))
   (raw-imapping
-   (imapping-fold-left/key (λ (k v t)
+   (imapping-fold-left/key (lambda (k v t)
                              (trie-insert t k (proc k v)))
                            #f
                            imap)))
@@ -295,7 +295,7 @@
 
 (define (imapping-for-each proc imap)
   (assume (procedure? proc))
-  (imapping-fold-left (λ (v _)
+  (imapping-fold-left (lambda (v _)
                         (proc v)
                         (unspecified))
                       (unspecified)
@@ -303,7 +303,7 @@
 
 (define (imapping-for-each/key proc imap)
   (assume (procedure? proc))
-  (imapping-fold-left/key (λ (k v _)
+  (imapping-fold-left/key (lambda (k v _)
                             (proc k v)
                             (unspecified))
                           (unspecified)
@@ -355,14 +355,14 @@
 
 (define (imapping-map->list proc imap)
   (assume (procedure? proc))
-  (imapping-fold-right (λ (v us)
+  (imapping-fold-right (lambda (v us)
                          (cons (proc v) us))
                        '()
                        imap))
 
 (define (imapping-map/key->list proc imap)
   (assume (procedure? proc))
-  (imapping-fold-right/key (λ (k v us)
+  (imapping-fold-right/key (lambda (k v us)
                              (cons (proc k v) us))
                            '()
                            imap))
@@ -378,10 +378,10 @@
   (raw-imapping (trie-filter/key pred (imapping-trie imap))))
 
 (define (imapping-remove pred imap)
-  (imapping-filter (λ (v) (not (pred v))) imap))
+  (imapping-filter (lambda (v) (not (pred v))) imap))
 
 (define (imapping-remove/key pred imap)
-  (imapping-filter/key (λ (k v) (not (pred k v))) imap))
+  (imapping-filter/key (lambda (k v) (not (pred k v))) imap))
 
 (define (imapping-partition pred imap)
   (assume (procedure? pred))
@@ -400,12 +400,12 @@
 ;;;; Conversion
 
 (define (imapping->alist imap)
-  (imapping-fold-right/key (λ (k v as) (cons (cons k v) as))
+  (imapping-fold-right/key (lambda (k v as) (cons (cons k v) as))
                            '()
                            imap))
 
 (define (imapping-keys imap)
-  (imapping-fold-right/key (λ (k _ ks) (cons k ks)) '() imap))
+  (imapping-fold-right/key (lambda (k _ ks) (cons k ks)) '() imap))
 
 (define (imapping-values imap)
   (imapping-fold-right cons '() imap))
@@ -415,7 +415,7 @@
 (define (imapping=? comp imap1 imap2 . imaps)
   (assume (comparator? comp))
   (assume (imapping? imap1))
-  (let ((imap-eq1 (λ (imap)
+  (let ((imap-eq1 (lambda (imap)
                     (assume (imapping? imap))
                     (or (eqv? imap1 imap)
                         (trie=? comp
@@ -479,7 +479,7 @@
   (assume (imapping? imap))
   (assume (pair? rest))
   (raw-imapping
-   (fold (λ (im t)
+   (fold (lambda (im t)
            (assume (imapping? im))
            (trie-merge second (imapping-trie im) t))
          (imapping-trie imap)
@@ -489,7 +489,7 @@
   (assume (imapping? imap))
   (assume (pair? rest))
   (raw-imapping
-   (fold (λ (im t)
+   (fold (lambda (im t)
            (assume (imapping? im))
            (trie-intersection (imapping-trie im) t))
          (imapping-trie imap)
@@ -519,7 +519,7 @@
   (assume (valid-integer? key))
   (maybe-ref (imapping-lookup imap key)
              imapping
-             (λ (v) (imapping key v))))
+             (lambda (v) (imapping key v))))
 
 (define (imapping-open-interval imap low high)
   (assume (imapping? imap))

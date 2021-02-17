@@ -1,7 +1,3 @@
-(define-syntax λ
-  (syntax-rules ()
-    ((λ . rest) (lambda . rest))))
-
 ;;;; Utility
 
 (define default-comp (make-default-comparator))
@@ -10,7 +6,7 @@
 
 (define (first x _) x)
 (define (second _ y) y)
-(define (nth n) (λ args (list-ref args n)))
+(define (nth n) (lambda args (list-ref args n)))
 
 (define (square x) (* x x))
 
@@ -32,25 +28,25 @@
   (let* ((cs "abcdefghijklmnopqrstuvwxyz")
          (len (string-length cs)))
     (imapping-unfold
-     (λ (i) (= i len))
-     (λ (i) (values i (string->symbol (string (string-ref cs i)))))
-     (λ (i) (+ i 1))
+     (lambda (i) (= i len))
+     (lambda (i) (values i (string->symbol (string (string-ref cs i)))))
+     (lambda (i) (+ i 1))
      0)))
 
 ;; (-100 . -100), (-75 . -75), ..., (0 . 0), ..., (100 . 100)
 (define mixed-seq
-  (unfold (λ (i) (> i 100))
-          (λ (i) (cons i i))
-          (λ (i) (+ i 25))
+  (unfold (lambda (i) (> i 100))
+          (lambda (i) (cons i i))
+          (lambda (i) (+ i 25))
           -100))
 
 (define mixed-imap (alist->imapping mixed-seq))
 
 ;; From -65536 to 65536 in steps of 4096.  Key = value.
 (define sparse-seq
-  (unfold (λ (i) (> i 65536))
-          (λ (i) (cons i i))
-          (λ (i) (+ i 4096))
+  (unfold (lambda (i) (> i 65536))
+          (lambda (i) (cons i i))
+          (lambda (i) (+ i 4096))
           -65536))
 
 (define sparse-imap (alist->imapping sparse-seq))
@@ -85,31 +81,33 @@
 
   (test #t (null? (imapping->alist (imapping-unfold
                                     values
-                                    (λ (b) (values 1 b))
-                                    (λ (b) (not b))
+                                    (lambda (b) (values 1 b))
+                                    (lambda (b) (not b))
                                     #t))))
   (test '((1 . #f)) (imapping->alist (imapping-unfold
                                       values
-                                      (λ (b) (values 1 b))
-                                      (λ (b) (not b))
+                                      (lambda (b) (values 1 b))
+                                      (lambda (b) (not b))
                                       #f)))
   (test '((-3 . -3) (-2 . -2) (-1 . -1))
         (imapping->alist (imapping-unfold
-                          (λ (i) (< i -3))
-                          (λ (i) (values i i))
-                          (λ (i) (- i 1))
+                          (lambda (i) (< i -3))
+                          (lambda (i) (values i i))
+                          (lambda (i) (- i 1))
                           -1)))
 
   (test #t (null? (imapping->alist (imapping-unfold-maybe
-                                    (λ (b) (if b (nothing) (just 1 b (not b))))
+                                    (lambda (b)
+                                      (if b (nothing) (just 1 b (not b))))
                                     #t))))
   (test '((1 . #f))
         (imapping->alist (imapping-unfold-maybe
-                          (λ (b) (if b (nothing) (just 1 b (not b))))
+                          (lambda (b) (if b (nothing) (just 1 b (not b))))
                           #f)))
   (test '((-3 . -3) (-2 . -2) (-1 . -1))
         (imapping->alist (imapping-unfold-maybe
-                          (λ (i) (if (< i -3) (nothing) (just i i (- i 1))))
+                          (lambda (i)
+                            (if (< i -3) (nothing) (just i i (- i 1))))
                           -1)))
 
   ;;; alist->imapping
@@ -156,14 +154,18 @@
   ;;; min/max
 
   (test #t (nothing? (imapping-min empty-imap)))
-  (test '(0 a) (maybe-ref (imapping-min letter-imap) (λ () #f) list))
-  (test '(-100 -100) (maybe-ref (imapping-min mixed-imap) (λ () #f) list))
-  (test '(-65536 -65536) (maybe-ref (imapping-min sparse-imap) (λ () #f) list))
+  (test '(0 a) (maybe-ref (imapping-min letter-imap) (lambda () #f) list))
+  (test '(-100 -100) (maybe-ref (imapping-min mixed-imap) (lambda () #f) list))
+  (test '(-65536 -65536) (maybe-ref (imapping-min sparse-imap)
+                                    (lambda () #f)
+                                    list))
 
   (test #t (nothing? (imapping-max empty-imap)))
-  (test '(25 z) (maybe-ref (imapping-max letter-imap) (λ () #f) list))
-  (test '(100 100) (maybe-ref (imapping-max mixed-imap) (λ () #f) list))
-  (test '(65536 65536) (maybe-ref (imapping-max sparse-imap) (λ () #f) list))
+  (test '(25 z) (maybe-ref (imapping-max letter-imap) (lambda () #f) list))
+  (test '(100 100) (maybe-ref (imapping-max mixed-imap) (lambda () #f) list))
+  (test '(65536 65536) (maybe-ref (imapping-max sparse-imap)
+                                  (lambda () #f)
+                                  list))
   )
 
 (test-group "Updaters"
@@ -208,7 +210,7 @@
                  20
                  #f))
   (test 16384 (imapping-lookup/default
-               (imapping-adjust/key sparse-imap 8192 (λ (k v) (+ k v)))
+               (imapping-adjust/key sparse-imap 8192 (lambda (k v) (+ k v)))
                8192
                #f))
   (test #t (imapping-empty? (imapping-adjust/key empty-imap 1 list)))
@@ -220,7 +222,7 @@
   (test #t (imapping=? default-comp mixed-imap (imapping-delete mixed-imap 1)))
   (let* ((ks '(4096 8192 16384))
          (sm (apply imapping-delete sparse-imap ks)))
-    (test #f (any (λ (k) (imapping-contains? sm k)) ks)))
+    (test #f (any (lambda (k) (imapping-contains? sm k)) ks)))
 
   (test #f (imapping-contains? (imapping-delete-all letter-imap '(10)) 10))
   (test #f (imapping-contains? (imapping-delete-all mixed-imap '(50)) 50))
@@ -229,7 +231,7 @@
                        (imapping-delete-all mixed-imap '(1))))
   (let* ((ks '(4096 8192 16384))
          (sm (imapping-delete-all sparse-imap ks)))
-    (test #f (any (λ (k) (imapping-contains? sm k)) ks)))
+    (test #f (any (lambda (k) (imapping-contains? sm k)) ks)))
 
   ;;; update
 
@@ -252,7 +254,7 @@
             (imapping 0 '(0 a))
             (imapping-update/key (imapping 0 'a)
                                  0
-                                 (λ (k v) (just (list k v))))))
+                                 (lambda (k v) (just (list k v))))))
   (test 'U (imapping-lookup/default
             (imapping-update/key letter-imap 20 (constantly (just 'U)))
             20
@@ -285,7 +287,7 @@
   (test 101 (imapping-lookup/default
              (imapping-alter mixed-imap
                              100
-                             (λ (m) (maybe-map (λ (n) (+ n 1)) m)))
+                             (lambda (m) (maybe-map (lambda (n) (+ n 1)) m)))
              100
              #f))
   (test 'z (imapping-lookup/default
@@ -297,8 +299,8 @@
   (test -16383 (imapping-lookup/default
                 (imapping-alter sparse-imap
                                 -16384
-                                (λ (m)
-                                  (maybe-map (λ (n) (+ n 1)) m)))
+                                (lambda (m)
+                                  (maybe-map (lambda (n) (+ n 1)) m)))
                 -16384
                 #f))
   (test 'z (imapping-lookup/default
@@ -332,18 +334,18 @@
             (imapping-update-min letter-imap (constantly (nothing)))
             0))
   (test -65535 (imapping-lookup/default
-                (imapping-update-min sparse-imap (λ (v) (just (+ v 1))))
+                (imapping-update-min sparse-imap (lambda (v) (just (+ v 1))))
                 -65536
                 #f))
 
   (test -200 (imapping-lookup/default
               (imapping-update-min/key mixed-imap
-                                       (λ (k v) (just (+ k v))))
+                                       (lambda (k v) (just (+ k v))))
               -100
               #f))
   (test '(0 a)
         (imapping-lookup/default
-         (imapping-update-min/key letter-imap (λ (k v) (just (list k v))))
+         (imapping-update-min/key letter-imap (lambda (k v) (just (list k v))))
          0
          #f))
 
@@ -357,18 +359,18 @@
             (imapping-update-max letter-imap (constantly (nothing)))
             25))
   (test 65537 (imapping-lookup/default
-                (imapping-update-max sparse-imap (λ (v) (just (+ v 1))))
+                (imapping-update-max sparse-imap (lambda (v) (just (+ v 1))))
                 65536
                 #f))
 
   (test 200 (imapping-lookup/default
              (imapping-update-max/key mixed-imap
-                                      (λ (k v) (just (+ k v))))
+                                      (lambda (k v) (just (+ k v))))
              100
              #f))
   (test '(25 z)
         (imapping-lookup/default
-         (imapping-update-max/key letter-imap (λ (k v) (just (list k v))))
+         (imapping-update-max/key letter-imap (lambda (k v) (just (list k v))))
          25
          #f))
   )
@@ -380,12 +382,12 @@
   (test 0 (imapping-count even? empty-imap))
   (test 26 (imapping-count symbol? letter-imap))
   (let ((ss '(f r o b)))
-    (test (length ss) (imapping-count (λ (s) (memv s ss)) letter-imap))
+    (test (length ss) (imapping-count (lambda (s) (memv s ss)) letter-imap))
     (test (- (imapping-size letter-imap) (length ss))
-          (imapping-count (λ (s) (not (memv s ss))) letter-imap)))
+          (imapping-count (lambda (s) (not (memv s ss))) letter-imap)))
   (test 4 (imapping-count positive? mixed-imap))
 
-  (test 2 (imapping-count/key (λ (k v) (and (even? k) (positive? v)))
+  (test 2 (imapping-count/key (lambda (k v) (and (even? k) (positive? v)))
                               mixed-imap))
 
   ;;; any?/every?
@@ -412,7 +414,7 @@
                        (imapping-map values mixed-imap)))
   (test #t (imapping=? default-comp
                        (imapping 0 "" 1 "a" 2 "aa")
-                       (imapping-map (λ (m) (make-string m #\a))
+                       (imapping-map (lambda (m) (make-string m #\a))
                                      (imapping 0 0 1 1 2 2))))
   (test #f (imapping-any? negative? (imapping-map abs sparse-imap)))
 
@@ -431,17 +433,17 @@
 
   (test 26
         (let ((size 0))
-          (imapping-for-each (λ (_) (set! size (+ size 1))) letter-imap)
+          (imapping-for-each (lambda (_) (set! size (+ size 1))) letter-imap)
           size))
   (test '(c b a)
         (let ((xs '()))
-          (imapping-for-each (λ (x) (set! xs (cons x xs)))
+          (imapping-for-each (lambda (x) (set! xs (cons x xs)))
                              (imapping 0 'a 1 'b 2 'c))
           xs))
 
   (test '((2 . c) (1 . b) (0 . a))
         (let ((xs '()))
-          (imapping-for-each/key (λ (k x) (set! xs (cons (cons k x) xs)))
+          (imapping-for-each/key (lambda (k x) (set! xs (cons (cons k x) xs)))
                                  (imapping 0 'a 1 'b 2 'c))
           xs))
 
@@ -454,7 +456,7 @@
   (test (fold + 0 (iota 9 -100 25)) (imapping-fold-left + 0 mixed-imap))
 
   (test (reverse '((0 . "") (1 . "b") (2 . "cc")))
-        (imapping-fold-left/key (λ (k c as)
+        (imapping-fold-left/key (lambda (k c as)
                                   (cons (cons k (make-string k c)) as))
                                 '()
                                 (imapping 0 #\a 1 #\b 2 #\c)))
@@ -468,7 +470,7 @@
   (test (fold + 0 (iota 9 -100 25)) (imapping-fold-right + 0 mixed-imap))
 
   (test '((0 . "") (1 . "b") (2 . "cc"))
-        (imapping-fold-right/key (λ (k c as)
+        (imapping-fold-right/key (lambda (k c as)
                                   (cons (cons k (make-string k c)) as))
                                  '()
                                  (imapping 0 #\a 1 #\b 2 #\c)))
@@ -481,48 +483,48 @@
   (test (map square (iota 9 -100 25))
         (imapping-map->list square mixed-imap))
   (test '("" "a" "aa")
-        (imapping-map->list (λ (n) (make-string n #\a))
+        (imapping-map->list (lambda (n) (make-string n #\a))
                             (imapping 0 0 1 1 2 2)))
 
   (test (iota 26) (imapping-map/key->list (nth 0) letter-imap))
   (test '((0 . "") (1 . "b") (2 . "cc"))
-        (imapping-map/key->list (λ (k c) (cons k (make-string k c)))
+        (imapping-map/key->list (lambda (k c) (cons k (make-string k c)))
                                 (imapping 0 #\a 1 #\b 2 #\c)))
 
   ;;; filter
 
   (test #t
         (every values
-               (map (λ (m)
+               (map (lambda (m)
                       (imapping=? default-comp
                                   m
                                   (imapping-filter (constantly #t) m)))
                     (list empty-imap letter-imap mixed-imap sparse-imap))))
   (test #t
         (every imapping-empty?
-               (map (λ (m) (imapping-filter (constantly #f) m))
+               (map (lambda (m) (imapping-filter (constantly #f) m))
                     (list empty-imap letter-imap mixed-imap sparse-imap))))
   (test #t (imapping=? default-comp
                        (imapping 25 25 50 50 75 75 100 100)
                        (imapping-filter positive? mixed-imap)))
   (test #t (imapping=? default-comp
                        (imapping 22 'w)
-                       (imapping-filter (λ (s) (eqv? s 'w)) letter-imap)))
+                       (imapping-filter (lambda (s) (eqv? s 'w)) letter-imap)))
 
   (test #t
         (every values
-               (map (λ (m)
+               (map (lambda (m)
                       (imapping=? default-comp
                                   m
                                   (imapping-filter/key (constantly #t) m)))
                     (list empty-imap letter-imap mixed-imap sparse-imap))))
   (test #t
         (every imapping-empty?
-               (map (λ (m) (imapping-filter/key (constantly #f) m))
+               (map (lambda (m) (imapping-filter/key (constantly #f) m))
                     (list empty-imap letter-imap mixed-imap sparse-imap))))
   (test #t (imapping=? default-comp
                        (imapping 25 25 75 75)
-                       (imapping-filter/key (λ (k v)
+                       (imapping-filter/key (lambda (k v)
                                               (and (odd? k) (positive? v)))
                                             mixed-imap)))
 
@@ -530,63 +532,64 @@
 
   (test #t
         (every values
-               (map (λ (m) (imapping=? default-comp
+               (map (lambda (m) (imapping=? default-comp
                                        m
                                        (imapping-remove (constantly #f) m)))
                     (list empty-imap letter-imap mixed-imap sparse-imap))))
   (test #t
         (every imapping-empty?
-               (map (λ (m) (imapping-remove (constantly #t) m))
+               (map (lambda (m) (imapping-remove (constantly #t) m))
                     (list empty-imap letter-imap mixed-imap sparse-imap))))
   (test #t (imapping=? default-comp
                        (imapping 0 0 25 25 50 50 75 75 100 100)
                        (imapping-remove negative? mixed-imap)))
   (test #t (imapping=? default-comp
                  (imapping 22 'w)
-                 (imapping-remove (λ (s) (not (eqv? s 'w))) letter-imap)))
+                 (imapping-remove (lambda (s) (not (eqv? s 'w))) letter-imap)))
 
   (test #t
-        (every (λ (m)
+        (every (lambda (m)
                  (imapping=? default-comp
                              m
                              (imapping-remove/key (constantly #f) m)))
                all-test-imaps))
   (test #t
         (every imapping-empty?
-               (map (λ (m) (imapping-remove/key (constantly #t) m))
+               (map (lambda (m) (imapping-remove/key (constantly #t) m))
                     (list empty-imap letter-imap mixed-imap sparse-imap))))
   (test #t (imapping=? default-comp
                        (imapping -100 -100 -50 -50 0 0)
-                       (imapping-remove/key (λ (k v)
+                       (imapping-remove/key (lambda (k v)
                                               (or (odd? k) (positive? v)))
                                             mixed-imap)))
 
   ;;; partition
 
   (test #t
-        (every (λ (m)
+        (every (lambda (m)
                  (imapping=?
                   default-comp
                   m
                   (value/mv 0 (imapping-partition (constantly #t) m))))
                all-test-imaps))
-  (test (call-with-values (λ () (partition even? (map car mixed-seq)))
+  (test (call-with-values (lambda () (partition even? (map car mixed-seq)))
                           list)
         (let-values (((em om) (imapping-partition even? mixed-imap)))
           (list (imapping-values em) (imapping-values om))))
   (test #t
-        (let-values (((zm not-zm) (imapping-partition (λ (s) (eqv? s 'z))
+        (let-values (((zm not-zm) (imapping-partition (lambda (s) (eqv? s 'z))
                                                       letter-imap)))
           (and (imapping=? default-comp zm (imapping 25 'z))
                (imapping=? default-comp
                            not-zm
                            (imapping-delete letter-imap 25)))))
 
-  (test (unfold (λ (i) (= i 26))
-                (λ (i) (string->symbol (string (integer->char (+ i #x61)))))
-                (λ (i) (+ i 2))
+  (test (unfold (lambda (i) (= i 26))
+                (lambda (i)
+                  (string->symbol (string (integer->char (+ i #x61)))))
+                (lambda (i) (+ i 2))
                 0)
-        (let-values (((em _) (imapping-partition/key (λ (k _) (even? k))
+        (let-values (((em _) (imapping-partition/key (lambda (k _) (even? k))
                                                      letter-imap)))
           (imapping-values em)))
   )

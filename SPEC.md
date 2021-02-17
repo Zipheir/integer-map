@@ -43,7 +43,7 @@ may clarify things:
 
     (imapping-unfold p f g x)
       ≡
-    (imapping-unfold-maybe (λ (s)
+    (imapping-unfold-maybe (lambda (s)
                              (if (p s)
                                  (nothing)
                                  (let-values (((k v) (f s)))
@@ -186,11 +186,11 @@ in terms of `imapping-update`, e.g.:
 
     (imapping-delete imap n)
      ≡
-    (imapping-update imap n (λ (_) (nothing)))
+    (imapping-update imap n (lambda (_) (nothing)))
 
     (imapping-adjoin imap n v)
      ≡
-    (imapping-update imap n (λ (_) (just v)))
+    (imapping-update imap n (lambda (_) (just v)))
 
 `(imapping-alter imap n proc)`
 
@@ -210,10 +210,10 @@ of the other update operations may be defined in terms of it.
 
       (imapping-update imap n f)
     ≡
-      (imapping-alter imap n (λ (m)
+      (imapping-alter imap n (lambda (m)
                                (maybe-ref m
                                           nothing
-                                          (λ (v) (f v)))))
+                                          (lambda (v) (f v)))))
 
 `(imapping-delete-min imap)`
 `(imapping-delete-max imap)`
