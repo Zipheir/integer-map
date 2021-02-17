@@ -350,3 +350,83 @@ Fusion of `(imapping-values (imapping-map proc imap)`.
 
 `imapping-map/key->list` is the same, except that *proc* is called on
 the key and value of each association.
+
+# Filter
+
+`(imapping-filter pred imap)`
+
+(\* → boolean) imapping → imapping
+
+`(imapping-filter/key pred imap)`
+
+(int \* → boolean) imapping → imapping
+
+Returns a new imapping containing all of the associations of *imap*
+whose values satisfy *pred*.
+
+`imapping-filter/key` is the same, except that *pred* is applied to
+the key and value of each association.
+
+`(imapping-remove pred imap)`
+
+(\* → boolean) imapping → imapping
+
+`(imapping-remove/key pred imap)`
+
+(int \* → boolean) imapping → imapping
+
+Returns a new imapping containing all of the associations of *imap*
+whose values do not satisfy *pred*.
+
+`imapping-remove/key` is the same, except that *pred* is applied to
+the key and value of each association.
+
+`(imapping-partition pred imap)`
+
+(\* → boolean) imapping → imapping imapping
+
+`(imapping-partition/key pred imap)`
+
+(int \* → boolean) imapping → imapping imapping
+
+Returns two new imappings: the first contains all associations of
+*imap* whose values satisfy pred, and the second contains all whose
+values do not.
+
+`imapping-partition/key` is the same, except that *pred* is applied to
+the key and value of each association.
+
+# Conversion
+
+`(imapping->alist imap)`
+
+imapping → list[pair(int, \*)]
+
+Returns a car/cdr alist containing the associations of *imap* in
+ascending numerical order of keys.
+
+    (imapping->alist (imapping 1 'a 2 'b)) ⇒ ((1 . a) (2 . b))
+
+`(imapping-keys imap)`
+
+imapping → list[int]
+
+Returns the keys of *imap* as a list in ascending numerical order.
+
+`(imapping-elements imap)`
+
+imapping → list[\*]
+
+Returns the elements of *imap* as a list in ascending numerical
+order of key.
+
+# Comparison
+
+`(imapping=? comp imap1 imap2 imap3 ...)`
+
+comparator imapping ... → boolean
+
+Returns `#t` iff all of the *imaps* contain equal associations.  Two
+associations are equal exactly when their keys are equal (in the sense
+of `=`) and if their values are equal in the sense of *comp*'s
+equality predicate (see SRFI 128).
