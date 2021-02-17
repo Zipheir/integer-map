@@ -430,3 +430,72 @@ Returns `#t` iff all of the *imaps* contain equal associations.  Two
 associations are equal exactly when their keys are equal (in the sense
 of `=`) and if their values are equal in the sense of *comp*'s
 equality predicate (see SRFI 128).
+
+`(imapping<? comp imap1 imap2 imap3 ...)`
+
+`(imapping<=? comp imap1 imap2 imap3 ...)`
+
+`(imapping>? comp imap1 imap2 imap3 ...)`
+
+`(imapping>=? comp imap1 imap2 imap3 ...)`
+
+comparator imapping ... → boolean
+
+Returns `#t` iff each *imap* other than the last is a proper
+subset/subset/proper superset/superset of the last.
+
+# Set theory operations
+
+`(imapping-union imap1 imap2 imap3 ...)`
+
+`(imapping-intersection imap1 imap2 imap3 ...)`
+
+`(imapping-difference imap1 imap2 imap3 ...)`
+
+`(imapping-xor imap1 imap2)`
+
+imapping ... → imapping
+
+Return a newly allocated imapping whose set of associations is the
+union, intersection, asymmetric difference, or symmetric difference of
+the sets of associations of the *imaps*.  Asymmetric difference is
+extended to more than two imappings by taking the difference between
+the first imapping and the union of the others.  Symmetric difference
+is not extended beyond two imappings.  When comparing associations,
+only the keys are compared.  In case of duplicate keys, associations
+in the result imapping are drawn from the first imapping in which they
+appear.
+
+# Submappings
+
+`(imapping-open-interval imap low high)`
+
+`(imapping-closed-interval imap low high)`
+
+`(imapping-open-closed-interval imap low high)`
+
+`(imapping-closed-open-interval imap low high)`
+
+imapping int int → imapping
+
+Procedures that return a subset of *imap* containing the associations
+whose keys are contained in the interval from *low* to *high*.  The
+interval may be open, closed, open below and closed above, or open
+above and closed below.
+
+`(isubmapping= imap k)`
+
+`(isubmapping< imap k)`
+
+`(isubmapping<= imap k)`
+
+`(isubmapping> imap k)`
+
+`(isubmapping>= imap k)`
+
+imapping int → imapping
+
+Procedures that return an imapping containing the associations of
+*imap* whose keys are equal to, less than/less than or equal
+to/greater than/greater than or equal to *k*.  Note that the result of
+`isubmapping=` contains at most one element.
