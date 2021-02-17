@@ -413,7 +413,7 @@ imapping → list[int]
 
 Returns the keys of *imap* as a list in ascending numerical order.
 
-`(imapping-elements imap)`
+`(imapping-values imap)`
 
 imapping → list[\*]
 
