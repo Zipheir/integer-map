@@ -15,7 +15,7 @@ change.
 
 `(imapping n1 v1 n2 …)`
 
-int * int … → imapping
+int \* int … → imapping
 
 Returns a new imapping.  The args alternate between keys (which
 must be exact integers) and values (which may be anything); the
@@ -30,12 +30,12 @@ two values, a key and an associated value.
 
 `(imapping-unfold-maybe mproc seed)`
 
-(* → maybe[* * *]) * → imapping
+(\* → maybe[\* \* \*]) \* → imapping
 
 Unfold a new imapping.  *mproc* is applied to *seed* and returns
 a Maybe value.  If this value is Nothing, then unfolding terminates.
 If it is a Just of three values *k, v, seed′*, then a new association
-(*k*, *v*) is added to the resulting imapping and unfolding continues
+*(k, v)* is added to the resulting imapping and unfolding continues
 with *seed′*.
 
 The following equivalence between the two imapping-unfold procedures
@@ -52,7 +52,7 @@ may clarify things:
 
 `(alist->imapping alist)`
 
-list[(int . *)] → imapping
+list[(int . \*)] → imapping
 
 Returns a new imapping containing the associations of *alist*.
 
@@ -60,7 +60,7 @@ Returns a new imapping containing the associations of *alist*.
 
 `(imapping? obj)`
 
-* → boolean
+\* → boolean
 
 Returns `#t` iff *obj* is an imapping.
 
@@ -86,14 +86,14 @@ Returns `#t` iff *imap1* and *imap* have no keys in common.
 
 `(imapping-lookup imap n)`
 
-imapping int → maybe[*]
+imapping int → maybe[\*]
 
 If an association *(n, v)* occurs in *imap*, returns Just *v*.
 Otherwise, returns Nothing.
 
 `(imapping-lookup-default imap n obj)`
 
-imapping int * → *
+imapping int \* → \*
 
 If an association *(n, v)* occurs in *imap*, returns Just *v*.
 Otherwise, returns *obj*.
@@ -108,7 +108,7 @@ Nothing.
 
 `(imapping-max imap)`
 
-imapping → maybe[*]
+imapping → maybe[\*]
 
 Returns Just *n* *v*, where *n* is the greatest key of *imap*.
 If *imap* is empty in the sense of `imapping-empty?`, returns
@@ -118,7 +118,7 @@ Nothing.
 
 `(imapping-adjoin imap n1 v1 n2 …)`
 
-imapping int * int … → imapping
+imapping int \* int … → imapping
 
 Returns a new imapping containing all of the associations of
 *imap* as well as the associations *(n1, v1)*, *(n2, v2)*, …
@@ -129,7 +129,7 @@ replaced.
 
 `(imapping-adjoin/combine imap proc n1 v1 n2 …)`
 
-imapping (* * → *) int * int … → imapping
+imapping (\* \* → \*) int \* int … → imapping
 
 Similar to `imapping-adjoin`, except that duplicate associations
 are combined with *proc*.  This procedure is called on the new and
@@ -138,11 +138,11 @@ expected to return a value for the key.
 
 `(imapping-adjust imap n proc)`
 
-imapping int (* → *) → imapping
+imapping int (\* → \*) → imapping
 
 `(imapping-adjust/key imap n proc)`
 
-imapping int (int * → *) → imapping
+imapping int (int \* → \*) → imapping
 
 Returns a new imapping in which the association *(n, v)* in *imap*
 is replaced by *(n, (proc v))*, or by *(n, (proc n v))* in the
@@ -166,11 +166,11 @@ those for keys equal to an element of *ns*.
 
 `(imapping-update imap n mproc)`
 
-imapping int (* → maybe[*]) → imapping
+imapping int (\* → maybe[\*]) → imapping
 
 `(imapping-update/key imap n mproc)`
 
-imapping int (n * → maybe[*]) → imapping
+imapping int (n \* → maybe[\*]) → imapping
 
 Returns a new imapping with the same associations as *imap*, except
 that the association for *n* is updated as follows.  *mproc* is
@@ -194,7 +194,7 @@ in terms of `imapping-update`, e.g.:
 
 `(imapping-alter imap n proc)`
 
-imapping int (maybe * → maybe *) → imapping
+imapping int (maybe \* → maybe \*) → imapping
 
 Returns a new imapping with the same associations as *imap*, except
 that the association, or lack thereof, for *n* is updated as follows.
@@ -227,12 +227,12 @@ returns an empty imapping.
 `(imapping-update-min imap mproc)`
 `(imapping-update-max imap mproc)`
 
-imapping (* → maybe[*]) → imapping
+imapping (\* → maybe[\*]) → imapping
 
 `(imapping-update-min/key imap mproc)`
 `(imapping-update-max/key imap mproc)`
 
-imapping (int * → maybe[*]) → imapping
+imapping (int \* → maybe[\*]) → imapping
 
 Returns a new imapping with the same associations as *imap*, except
 that the association for the least/greatest key *n* is updated as
@@ -258,11 +258,11 @@ Returns the number of associations in *imap*.
 
 `(imapping-count pred imap)`
 
-(* → boolean) imapping → int
+(\* → boolean) imapping → int
 
 `(imapping-count/key pred imap)`
 
-(int * → boolean) imapping → int
+(int \* → boolean) imapping → int
 
 Returns the number of associations in *imap* whose values satisfy
 *pred*.
@@ -272,7 +272,7 @@ the key and value of each association.
 
 `(imapping-any? pred imap)`
 
-(* → boolean) imapping → boolean
+(\* → boolean) imapping → boolean
 
 Returns `#t` iff there exists an association in *imap* whose value
 satisfies *pred*.  *imap* is traversed in ascending numerical order
@@ -280,7 +280,7 @@ of keys.
 
 `(imapping-every? pred imap)`
 
-(* → boolean) imapping → boolean
+(\* → boolean) imapping → boolean
 
 Returns `#t` iff the value of every association in *imap* satisfies
 *pred*, or if *imap* is empty.  *imap* is traversed in ascending
@@ -288,11 +288,11 @@ numerical order of keys.
 
 `(imapping-map proc imap)`
 
-(* → *) imapping → imapping
+(\* → \*) imapping → imapping
 
 `(imapping-map/key proc imap)`
 
-(int * → *) imapping → imapping
+(int \* → \*) imapping → imapping
 
 Returns a new imapping.  For each association *(n, v)* in *imap*,
 the association *(n, (proc v))* is added to the new imapping.
@@ -307,11 +307,11 @@ resulting imapping are the same as that of *imap*.
 
 `(imapping-for-each proc imap)`
 
-(* → *) imapping → unspecified
+(\* → \*) imapping → unspecified
 
 `(imapping-for-each/key proc imap)`
 
-(int * → *) imapping → unspecified
+(int \* → \*) imapping → unspecified
 
 Calls *proc* on the value of each association in *imap* and returns
 an unspecified value.  *imap* in traversed in ascending numerical
@@ -323,12 +323,12 @@ the key and value of each association.
 `(imapping-fold-left kons knil imap)`
 `(imapping-fold-right kons knil imap)`
 
-(* * → *) * imapping → *
+(\* \* → \*) \* imapping → \*
 
 `(imapping-fold-left/key kons knil imap)`
 `(imapping-fold-right/key kons knil imap)`
 
-(int * * → *) * imapping → *
+(int \* \* → \*) \* imapping → \*
 
 Folds *proc* over *imap*, using *knil* as the base value.
 `imapping-fold-left` folds in ascending numerical order of keys;
@@ -340,11 +340,11 @@ except that *proc* is also passed the key of each association.
 
 `(imapping-map->list proc imap)`
 
-(* → *) imapping → list[*]
+(\* → \*) imapping → list[\*]
 
 `(imapping-map/key->list proc imap)`
 
-(int * → *) imapping → list[*]
+(int \* → \*) imapping → list[\*]
 
 Fusion of `(imapping-values (imapping-map proc imap)`.
 
