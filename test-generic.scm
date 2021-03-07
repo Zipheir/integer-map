@@ -137,12 +137,12 @@
 (test-group "Accessors"
   ;;; lookups
 
-  (test #t (nothing? (imapping-lookup empty-imap 1)))
-  (test 'a (maybe-ref/default (imapping-lookup letter-imap 0) #f))
-  (test -50 (maybe-ref/default (imapping-lookup mixed-imap -50) #f))
-  (test #t (nothing? (imapping-lookup mixed-imap -51)))
-  (test 36864 (maybe-ref/default (imapping-lookup sparse-imap 36864) #f))
-  (test #t (nothing? (imapping-lookup sparse-imap 36800)))
+  (test #f (imapping-lookup empty-imap 1))
+  (test 'a (imapping-lookup letter-imap 0))
+  (test -50 (imapping-lookup mixed-imap -50))
+  (test #f (imapping-lookup mixed-imap -51))
+  (test 36864 (imapping-lookup sparse-imap 36864))
+  (test #f (imapping-lookup sparse-imap 36800))
 
   (test 'z (imapping-lookup/default empty-imap 1 'z))
   (test 'a (imapping-lookup/default letter-imap 0 #f))

@@ -101,10 +101,10 @@
 (define (imapping-lookup imap key)
   (assume (imapping? imap))
   (assume (valid-integer? key))
-  (truth->maybe (trie-assoc (imapping-trie imap) key)))
+  (trie-assoc (imapping-trie imap) key))
 
 (define (imapping-lookup/default imap key default)
-  (maybe-ref/default (imapping-lookup imap key) default))
+  (or (imapping-lookup imap key) default))
 
 (define (imapping-min imap)
   (assume (imapping? imap))

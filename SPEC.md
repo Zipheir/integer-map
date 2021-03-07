@@ -86,10 +86,10 @@ Returns `#t` iff *imap1* and *imap* have no keys in common.
 
 `(imapping-lookup imap n)`
 
-imapping int → maybe[\*]
+imapping int → */#f
 
-If an association *(n, v)* occurs in *imap*, returns Just *v*.
-Otherwise, returns Nothing.
+If an association *(n, v)* occurs in *imap*, returns *v*.
+Otherwise, returns `#f`.
 
 `(imapping-lookup-default imap n obj)`
 
