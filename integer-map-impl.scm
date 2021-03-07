@@ -517,9 +517,8 @@
 (define (isubmapping= imap key)
   (assume (imapping? imap))
   (assume (valid-integer? key))
-  (maybe-ref (imapping-lookup imap key)
-             imapping
-             (lambda (v) (imapping key v))))
+  (cond ((imapping-lookup imap key) => (lambda (v) (imapping key v)))
+        (else (imapping))))
 
 (define (imapping-open-interval imap low high)
   (assume (imapping? imap))
