@@ -221,8 +221,11 @@
 (define (fxmapping-delete-all fxmap keys)
   (assume (fxmapping? fxmap))
   (assume (or (pair? keys) (null? keys)))
-  (let ((key-set (list->iset keys)))
-    (fxmapping-remove (lambda (k _) (iset-contains? key-set k))
+  (let ((key-map (fxmapping-unfold null?
+                                   (lambda (ks) (values (car ks) #t))
+                                   cdr
+                                   keys)))
+    (fxmapping-remove (lambda (k _) (fxmapping-contains? key-map k))
                       fxmap)))
 
 (define fxmapping-update
