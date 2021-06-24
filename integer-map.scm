@@ -49,11 +49,15 @@
 
   (import scheme
           (except (chicken base) constantly)
+          (chicken platform)
           (only (srfi 1) fold every)
           (only (srfi 128) comparator? =?)
           (srfi 143)
           (srfi 145)
           (srfi 158))
+
+  (register-feature! 'integer-map)
+  (register-feature! 'srfi-224)
 
   ;; R7RS shim
   (define exact inexact->exact)
