@@ -2,7 +2,7 @@
 (import (srfi 1)
         (srfi 128)
         (srfi 158)
-        (srfi 224)
+        (integer-map)
         (test))
 
 ;; SRFI 64 shim.
