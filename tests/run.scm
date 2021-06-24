@@ -17,6 +17,6 @@
     ((test-equal expected expr)
      (test expected expr))))
 
-(include "test-generic.scm")
+(include "../test-generic.scm")
 
 (test-exit)
