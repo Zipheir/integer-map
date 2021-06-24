@@ -21,6 +21,7 @@
 
 ;;;; Utility
 
+(: plist-fold ((* * * -> *) * (list-of *) -> *))
 (define (plist-fold proc nil ps)
   (let loop ((b nil) (ps ps))
     (pmatch ps
@@ -29,9 +30,13 @@
        (loop (proc k v b) ps*))
       (else (error "plist-fold: invalid plist")))))
 
+(: first-arg (* * * --> *))
 (define (first-arg _k x _y) x)
+
+(: second-arg (* * * --> *))
 (define (second-arg _k _x y) y)
 
+(: constantly (* --> (* -> *)))
 (define (constantly x)
   (lambda (_) x))
 
@@ -40,19 +45,25 @@
 (define-record-type <fxmapping>
   (raw-fxmapping trie)
   fxmapping?
-  (trie fxmapping-trie))
+  (trie fxmapping-trie : trie-t))
+
+(define-type fxmapping-t (struct <fxmapping))
 
 ;;;; Constructors
 
+(: fxmapping (#!rest * --> (struct <fxmapping>)))
 (define (fxmapping . args)
   (raw-fxmapping
     (plist-fold (lambda (k v trie) (trie-adjoin trie k v))
                 the-empty-trie
                 args)))
 
+(: pair-or-null? (* --> boolean))
 (define (pair-or-null? x)
   (or (pair? x) (null? x)))
 
+(: alist->fxmapping/combinator
+   ((fixnum * * -> *) (list-of (pair fixnum *)) -> (struct <fxmapping>)))
 (define (alist->fxmapping/combinator comb as)
   (assume (procedure? comb))
   (assume (pair-or-null? as))
@@ -63,9 +74,11 @@
           the-empty-trie
           as)))
 
+(: alist->fxmapping ((list-of (pair fixnum *)) -> (struct <fxmapping>)))
 (define (alist->fxmapping as)
   (alist->fxmapping/combinator second-arg as))
 
+;; Type TODO.
 (define fxmapping-unfold
   (case-lambda
     ((stop? mapper successor seed)                ; fast path
@@ -91,6 +104,7 @@
              (assume (valid-integer? k))
              (lp (trie-adjoin trie k v) seeds*)))))))
 
+;; Type TODO.
 (define fxmapping-accumulate
   (case-lambda
     ((proc seed)                                ; fast path
@@ -116,15 +130,18 @@
 
 ;;;; Predicates
 
+(: fxmapping-contains? ((struct <fxmapping>) fixnum -> boolean))
 (define (fxmapping-contains? fxmap n)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? n))
   (trie-contains? (fxmapping-trie fxmap) n))
 
+(: fxmapping-empty? ((struct <fxmapping>) -> boolean))
 (define (fxmapping-empty? fxmap)
   (assume (fxmapping? fxmap))
   (eqv? (fxmapping-trie fxmap) the-empty-trie))
 
+(: fxmapping-disjoint? ((struct <fxmapping>) (struct <fxmapping>) -> boolean))
 (define (fxmapping-disjoint? fxmap1 fxmap2)
   (assume (fxmapping? fxmap1))
   (assume (fxmapping? fxmap2))
@@ -132,6 +149,7 @@
 
 ;;;; Accessors
 
+(: fxmapping-ref ((struct <fxmapping>) fixnum #!rest -> *))
 (define fxmapping-ref
   (case-lambda
     ((fxmap key)
@@ -150,16 +168,19 @@
      (assume (procedure? success))
      (trie-assoc (fxmapping-trie fxmap) key failure success))))
 
+(: fxmapping-ref/default ((struct <fxmapping>) fixnum * -> *))
 (define (fxmapping-ref/default fxmap key default)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
   (trie-assoc/default (fxmapping-trie fxmap) key default))
 
+(: fxmapping-min ((struct <fxmapping>) -> fixnum *))
 (define (fxmapping-min fxmap)
   (if (fxmapping-empty? fxmap)
       (error "fxmapping-min: empty fxmapping" fxmap)
       (trie-min (fxmapping-trie fxmap))))
 
+(: fxmapping-max ((struct <fxmapping>) -> fixnum *))
 (define (fxmapping-max fxmap)
   (if (fxmapping-empty? fxmap)
       (error "fxmapping-max: empty fxmapping" fxmap)
@@ -167,6 +188,8 @@
 
 ;;;; Updaters
 
+(: fxmapping-adjoin/combinator
+   (fxmapping-t (fixnum * * -> *) #!rest -> fxmapping-t))
 (define fxmapping-adjoin/combinator
   (case-lambda
     ((fxmap combine key value)      ; one-assoc fast path
@@ -180,6 +203,7 @@
                   ps)))))
 
 ;; Preserve existing associations for keys.
+(: fxmapping-adjoin (fxmapping-t #!rest -> fxmapping-t))
 (define fxmapping-adjoin
   (case-lambda
     ((fxmap key value)              ; one-assoc fast path
@@ -192,6 +216,7 @@
                   ps)))))
 
 ;; Replace existing associations for keys.
+(: fxmapping-set (fxmapping-t #!rest -> fxmapping-t))
 (define fxmapping-set
   (case-lambda
     ((fxmap key value)      ; one-assoc fast path
@@ -203,12 +228,14 @@
                   (fxmapping-trie fxmap)
                   ps)))))
 
+(: fxmapping-adjust (fxmapping-t fixnum (fixnum * -> *) -> fxmapping-t))
 (define (fxmapping-adjust fxmap key proc)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
   (assume (procedure? proc))
   (raw-fxmapping (trie-adjust (fxmapping-trie fxmap) key proc)))
 
+(: fxmapping-delete (fxmapping-t #!rest -> fxmapping-t))
 (define fxmapping-delete
   (case-lambda
     ((fxmap key)      ; fast path
@@ -218,6 +245,7 @@
     ((fxmap . keys)
      (fxmapping-delete-all fxmap keys))))
 
+(: fxmapping-delete (fxmapping-t (list-of fixnum) -> fxmapping-t))
 (define (fxmapping-delete-all fxmap keys)
   (assume (fxmapping? fxmap))
   (assume (or (pair? keys) (null? keys)))
@@ -228,6 +256,7 @@
     (fxmapping-remove (lambda (k _) (fxmapping-contains? key-map k))
                       fxmap)))
 
+;; Type TODO.
 (define fxmapping-update
   (case-lambda
     ((fxmap key success)
@@ -243,6 +272,7 @@
      (assume (procedure? failure))
      (trie-update (fxmapping-trie fxmap) key success failure raw-fxmapping))))
 
+;; Type TODO.
 (define (fxmapping-alter fxmap key failure success)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
@@ -250,17 +280,20 @@
   (assume (procedure? success))
   (trie-alter (fxmapping-trie fxmap) key failure success raw-fxmapping))
 
+(: fxmapping-delete-min (fxmapping-t --> fxmapping-t))
 (define (fxmapping-delete-min fxmap)
   (fxmapping-update-min fxmap
                         (lambda (_k _v _rep delete)
                           (delete))))
 
+;; Type TODO.
 (define (fxmapping-update-min fxmap success)
   (assume (fxmapping? fxmap))
   (assume (not (fxmapping-empty? fxmap)))
   (assume (procedure? success))
   (trie-update-min (fxmapping-trie fxmap) success raw-fxmapping))
 
+(: fxmapping-pop-min (fxmapping-t --> fixnum * fxmapping-t))
 (define (fxmapping-pop-min fxmap)
   (assume (fxmapping? fxmap))
   (if (fxmapping-empty? fxmap)
@@ -268,17 +301,20 @@
       (let-values (((k v trie) (trie-pop-min (fxmapping-trie fxmap))))
         (values k v (raw-fxmapping trie)))))
 
+(: fxmapping-delete-max (fxmapping-t --> fxmapping-t))
 (define (fxmapping-delete-max fxmap)
   (fxmapping-update-max fxmap
                         (lambda (_k _v _rep delete)
                           (delete))))
 
+;; Type TODO.
 (define (fxmapping-update-max fxmap success)
   (assume (fxmapping? fxmap))
   (assume (not (fxmapping-empty? fxmap)))
   (assume (procedure? success))
   (trie-update-max (fxmapping-trie fxmap) success raw-fxmapping))
 
+(: fxmapping-pop-max (fxmapping-t --> fixnum * fxmapping-t))
 (define (fxmapping-pop-max fxmap)
   (assume (fxmapping? fxmap))
   (if (fxmapping-empty? fxmap)
@@ -288,10 +324,13 @@
 
 ;;;; The whole fxmapping
 
+(: fxmapping-size (fxmapping-t --> fixnum))
 (define (fxmapping-size fxmap)
   (assume (fxmapping? fxmap))
   (trie-size (fxmapping-trie fxmap)))
 
+(: fxmapping-find
+   ((fixnum * -> boolean) fxmapping-t (-> *) #!rest -> *))
 (define fxmapping-find
   (case-lambda
     ((pred fxmap failure)
@@ -303,6 +342,7 @@
      (assume (procedure? success))
      (trie-find pred (fxmapping-trie fxmap) failure success))))
 
+(: fxmapping-count ((fixnum * -> boolean) fxmapping-t --> fixnum))
 (define (fxmapping-count pred fxmap)
   (assume (procedure? pred))
   (fxmapping-fold (lambda (k v acc)

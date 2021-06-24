@@ -50,6 +50,8 @@
   (import scheme
           (except (chicken base) constantly)
           (chicken platform)
+          (chicken type)
+          (typed-records)
           (only (srfi 1) fold every)
           (only (srfi 128) comparator? =?)
           (srfi 143)
