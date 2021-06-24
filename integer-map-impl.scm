@@ -23,551 +23,592 @@
 
 (define (plist-fold proc nil ps)
   (let loop ((b nil) (ps ps))
-    (match ps
+    (pmatch ps
       (() b)
-      ((k v . ps*)
-       (loop (proc k v b) ps*)))))
+      ((,k ,v . ,ps*)
+       (loop (proc k v b) ps*))
+      (else (error "plist-fold: invalid plist")))))
 
-(define (first x _) x)
-(define (second _ y) y)
+(define (first-arg _k x _y) x)
+(define (second-arg _k _x y) y)
 
 (define (constantly x)
-  (lambda _ x))
+  (lambda (_) x))
 
 ;;;; Type
 
-(define-record-type <imapping>
-  (raw-imapping trie)
-  imapping?
-  (trie imapping-trie))
+(define-record-type <fxmapping>
+  (raw-fxmapping trie)
+  fxmapping?
+  (trie fxmapping-trie))
 
 ;;;; Constructors
 
-(define (imapping . args)
-  (raw-imapping
-    (plist-fold (lambda (k v trie)
-                  (trie-insert/combine trie k v second))
-                #f
+(define (fxmapping . args)
+  (raw-fxmapping
+    (plist-fold (lambda (k v trie) (trie-adjoin trie k v))
+                the-empty-trie
                 args)))
 
 (define (pair-or-null? x)
   (or (pair? x) (null? x)))
 
-(define (alist->imapping as)
+(define (alist->fxmapping/combinator comb as)
+  (assume (procedure? comb))
   (assume (pair-or-null? as))
-  (imapping-unfold-maybe (match-lambda
-                           (() (nothing))
-                           (((k . v) . as*) (just k v as*)))
-                         as))
+  (raw-fxmapping
+    (fold (lambda (p trie)
+            (assume (pair? p) "alist->fxmapping/combinator: not a pair")
+            (trie-insert/combine trie (car p) (cdr p) comb))
+          the-empty-trie
+          as)))
 
-(define (imapping-unfold stop? mapper successor seed)
-  (assume (procedure? stop?))
-  (assume (procedure? mapper))
-  (assume (procedure? successor))
-  (let lp ((trie #f) (seed seed))
-    (if (stop? seed)
-        (raw-imapping trie)
-        (let-values (((k v) (mapper seed)))
-          (assume (valid-integer? k))
-          (lp (trie-insert trie k v) (successor seed))))))
+(define (alist->fxmapping as)
+  (alist->fxmapping/combinator second-arg as))
 
-(define (imapping-unfold-maybe proc seed)
-  (assume (procedure? proc))
-  (let lp ((trie #f) (seed seed))
-    (maybe-ref
-     (proc seed)
-     (lambda () (raw-imapping trie))
-     (lambda (k v seed*)
-       (lp (trie-insert trie k v) seed*)))))
+(define fxmapping-unfold
+  (case-lambda
+    ((stop? mapper successor seed)                ; fast path
+     (assume (procedure? stop?))
+     (assume (procedure? mapper))
+     (assume (procedure? successor))
+     (let lp ((trie the-empty-trie) (seed seed))
+       (if (stop? seed)
+           (raw-fxmapping trie)
+           (let-values (((k v) (mapper seed)))
+             (assume (valid-integer? k))
+             (lp (trie-adjoin trie k v) (successor seed))))))
+    ((stop? mapper successor . seeds)             ; variadic path
+     (assume (procedure? stop?))
+     (assume (procedure? mapper))
+     (assume (procedure? successor))
+     (assume (pair? seeds))
+     (let lp ((trie the-empty-trie) (seeds seeds))
+       (if (apply stop? seeds)
+           (raw-fxmapping trie)
+           (let-values (((k v) (apply mapper seeds))
+                        (seeds* (apply successor seeds)))
+             (assume (valid-integer? k))
+             (lp (trie-adjoin trie k v) seeds*)))))))
+
+(define fxmapping-accumulate
+  (case-lambda
+    ((proc seed)                                ; fast path
+     (assume (procedure? proc))
+     (call-with-current-continuation
+      (lambda (k)
+        (let lp ((trie the-empty-trie) (seed seed))
+          (let-values (((k v seed*)
+                        (proc (lambda xs (apply k (raw-fxmapping trie) xs))
+                              seed)))
+            (lp (trie-adjoin trie k v) seed*))))))
+    ((proc . seeds)                             ; variadic path
+     (assume (procedure? proc))
+     (assume (pair? seeds))
+     (call-with-current-continuation
+      (lambda (k)
+        (let lp ((trie the-empty-trie) (seeds seeds))
+          (let-values (((k v . seeds*)
+                        (apply proc
+                               (lambda xs (apply k (raw-fxmapping trie) xs))
+                               seeds)))
+            (lp (trie-adjoin trie k v) seeds*))))))))
 
 ;;;; Predicates
 
-(define (imapping-contains? imap n)
-  (assume (imapping? imap))
+(define (fxmapping-contains? fxmap n)
+  (assume (fxmapping? fxmap))
   (assume (valid-integer? n))
-  (and (trie-assoc (imapping-trie imap) n) #t))
+  (trie-contains? (fxmapping-trie fxmap) n))
 
-(define (imapping-empty? imap)
-  (assume (imapping? imap))
-  (not (imapping-trie imap)))
+(define (fxmapping-empty? fxmap)
+  (assume (fxmapping? fxmap))
+  (eqv? (fxmapping-trie fxmap) the-empty-trie))
 
-(define (imapping-disjoint? imap1 imap2)
-  (assume (imapping? imap1))
-  (assume (imapping? imap2))
-  (trie-disjoint? (imapping-trie imap1) (imapping-trie imap2)))
+(define (fxmapping-disjoint? fxmap1 fxmap2)
+  (assume (fxmapping? fxmap1))
+  (assume (fxmapping? fxmap2))
+  (trie-disjoint? (fxmapping-trie fxmap1) (fxmapping-trie fxmap2)))
 
 ;;;; Accessors
 
-(define (imapping-lookup imap key)
-  (assume (imapping? imap))
+(define fxmapping-ref
+  (case-lambda
+    ((fxmap key)
+     (fxmapping-ref fxmap
+                    key
+                    (lambda () (error "fxmapping-ref: key not found"
+                                      key
+                                      fxmap))
+                    values))
+    ((fxmap key failure)
+     (fxmapping-ref fxmap key failure values))
+    ((fxmap key failure success)
+     (assume (fxmapping? fxmap))
+     (assume (valid-integer? key))
+     (assume (procedure? failure))
+     (assume (procedure? success))
+     (trie-assoc (fxmapping-trie fxmap) key failure success))))
+
+(define (fxmapping-ref/default fxmap key default)
+  (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
-  (trie-assoc (imapping-trie imap) key))
+  (trie-assoc/default (fxmapping-trie fxmap) key default))
 
-(define (imapping-lookup/default imap key default)
-  (or (imapping-lookup imap key) default))
+(define (fxmapping-min fxmap)
+  (if (fxmapping-empty? fxmap)
+      (error "fxmapping-min: empty fxmapping" fxmap)
+      (trie-min (fxmapping-trie fxmap))))
 
-(define (imapping-min imap)
-  (assume (imapping? imap))
-  (trie-min (imapping-trie imap)))
-
-(define (imapping-max imap)
-  (assume (imapping? imap))
-  (trie-max (imapping-trie imap)))
+(define (fxmapping-max fxmap)
+  (if (fxmapping-empty? fxmap)
+      (error "fxmapping-max: empty fxmapping" fxmap)
+      (trie-max (fxmapping-trie fxmap))))
 
 ;;;; Updaters
 
-(define imapping-adjoin/combine
+(define fxmapping-adjoin/combinator
   (case-lambda
-    ((imap combine key value)      ; one-assoc fast path
-     (raw-imapping
-      (trie-insert/combine (imapping-trie imap) key value combine)))
-    ((imap combine . ps)
-     (raw-imapping
+    ((fxmap combine key value)      ; one-assoc fast path
+     (raw-fxmapping
+      (trie-insert/combine (fxmapping-trie fxmap) key value combine)))
+    ((fxmap combine . ps)
+     (raw-fxmapping
       (plist-fold (lambda (k v t)
                     (trie-insert/combine t k v combine))
-                  (imapping-trie imap)
+                  (fxmapping-trie fxmap)
                   ps)))))
 
-(define imapping-adjoin
+;; Preserve existing associations for keys.
+(define fxmapping-adjoin
   (case-lambda
-    ((imap key value)              ; one-assoc fast path
-     (raw-imapping
-      (trie-insert (imapping-trie imap) key value)))
-    ((imap . ps)
-     (raw-imapping
+    ((fxmap key value)              ; one-assoc fast path
+     (raw-fxmapping
+      (trie-adjoin (fxmapping-trie fxmap) key value)))
+    ((fxmap . ps)
+     (raw-fxmapping
+      (plist-fold (lambda (k v t) (trie-adjoin t k v))
+                  (fxmapping-trie fxmap)
+                  ps)))))
+
+;; Replace existing associations for keys.
+(define fxmapping-set
+  (case-lambda
+    ((fxmap key value)      ; one-assoc fast path
+     (raw-fxmapping
+      (trie-insert (fxmapping-trie fxmap) key value)))
+    ((fxmap . ps)
+     (raw-fxmapping
       (plist-fold (lambda (k v t) (trie-insert t k v))
-                  (imapping-trie imap)
+                  (fxmapping-trie fxmap)
                   ps)))))
 
-(define (imapping-adjust imap key proc)
-  (assume (imapping? imap))
+(define (fxmapping-adjust fxmap key proc)
+  (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
   (assume (procedure? proc))
-  (raw-imapping (trie-adjust (imapping-trie imap) key proc #f)))
+  (raw-fxmapping (trie-adjust (fxmapping-trie fxmap) key proc)))
 
-(define (imapping-adjust/key imap key proc)
-  (assume (imapping? imap))
-  (assume (valid-integer? key))
-  (assume (procedure? proc))
-  (raw-imapping (trie-adjust (imapping-trie imap) key proc #t)))
-
-(define imapping-delete
+(define fxmapping-delete
   (case-lambda
-    ((imap key)      ; fast path
-     (assume (imapping? imap))
+    ((fxmap key)      ; fast path
+     (assume (fxmapping? fxmap))
      (assume (valid-integer? key))
-     (raw-imapping (trie-delete (imapping-trie imap) key)))
-    ((imap . keys)
-     (imapping-delete-all imap keys))))
+     (raw-fxmapping (trie-delete (fxmapping-trie fxmap) key)))
+    ((fxmap . keys)
+     (fxmapping-delete-all fxmap keys))))
 
-;; FIXME: Uses keys as an lset, which is inefficient.
-(define (imapping-delete-all imap keys)
-  (assume (imapping? imap))
+(define (fxmapping-delete-all fxmap keys)
+  (assume (fxmapping? fxmap))
   (assume (or (pair? keys) (null? keys)))
-  (imapping-remove/key (lambda (k _) (memv k keys)) imap))
+  (let ((key-set (list->iset keys)))
+    (fxmapping-remove (lambda (k _) (iset-contains? key-set k))
+                      fxmap)))
 
-;; Update the association (key, value) in trie with the result of
-;; (mproc value), which is a Maybe value.
-(define (imapping-update imap key mproc)
-  (assume (imapping? imap))
+(define fxmapping-update
+  (case-lambda
+    ((fxmap key success)
+     (fxmapping-update fxmap
+                       key
+                       success
+                       (lambda ()
+                         (error "fxmapping-update: key not found" key fxmap))))
+    ((fxmap key success failure)
+     (assume (fxmapping? fxmap))
+     (assume (valid-integer? key))
+     (assume (procedure? success))
+     (assume (procedure? failure))
+     (trie-update (fxmapping-trie fxmap) key success failure raw-fxmapping))))
+
+(define (fxmapping-alter fxmap key failure success)
+  (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
-  (assume (procedure? mproc))
-  (raw-imapping (trie-update (imapping-trie imap) key mproc #f)))
-
-;; Update the association (key, value) in trie with the result of
-;; (mproc key value), which is a Maybe value.
-(define (imapping-update/key imap key mproc)
-  (assume (imapping? imap))
-  (assume (valid-integer? key))
-  (assume (procedure? mproc))
-  (raw-imapping (trie-update (imapping-trie imap) key mproc #t)))
-
-;; Update the association (key, value) (or lack thereof) in imap
-;; using proc, which is an endomap on Maybes.
-(define (imapping-alter imap key proc)
-  (assume (imapping? imap))
-  (assume (valid-integer? key))
-  (assume (procedure? proc))
-  (raw-imapping (trie-alter (imapping-trie imap) key proc)))
-
-;; Delete the element with the least key, or return an empty
-;; mapping if `imap' is empty.
-(define (imapping-delete-min imap)
-  (imapping-update-min/key imap (constantly (nothing))))
-
-;; Call success on the value of the element of `imap' with the least
-;; key and use the value, a Maybe, to update the mapping.
-(define (imapping-update-min imap success)
-  (imapping-update-min/key imap (lambda (_ v) (success v))))
-
-;; Call success on the least key and corresponding value of `imap'
-;; and use the value, a Maybe, to update the mapping.
-(define (imapping-update-min/key imap success)
-  (assume (imapping? imap))
+  (assume (procedure? failure))
   (assume (procedure? success))
-  (raw-imapping
-   (%trie-update-min/key (imapping-trie imap) success)))
+  (trie-alter (fxmapping-trie fxmap) key failure success raw-fxmapping))
 
-;; Delete the element with the greatest key, or return an empty
-;; mapping if `imap' is empty.
-(define (imapping-delete-max imap)
-  (imapping-update-max/key imap (constantly (nothing))))
+(define (fxmapping-delete-min fxmap)
+  (fxmapping-update-min fxmap
+                        (lambda (_k _v _rep delete)
+                          (delete))))
 
-;; Call success on the value of the element of `imap' with the
-;; greatest key and use the value, a Maybe, to update the mapping.
-(define (imapping-update-max imap success)
-  (imapping-update-max/key imap (lambda (_ v) (success v))))
-
-;; Call success on the greatest key and corresponding value of `imap'
-;; and use the value, a Maybe, to update the mapping.
-(define (imapping-update-max/key imap success)
-  (assume (imapping? imap))
+(define (fxmapping-update-min fxmap success)
+  (assume (fxmapping? fxmap))
+  (assume (not (fxmapping-empty? fxmap)))
   (assume (procedure? success))
-  (raw-imapping
-   (%trie-update-max/key (imapping-trie imap) success)))
+  (trie-update-min (fxmapping-trie fxmap) success raw-fxmapping))
 
-;;;; The whole imapping
+(define (fxmapping-pop-min fxmap)
+  (assume (fxmapping? fxmap))
+  (if (fxmapping-empty? fxmap)
+      (error "fxmapping-pop-min: empty fxmapping" fxmap)
+      (let-values (((k v trie) (trie-pop-min (fxmapping-trie fxmap))))
+        (values k v (raw-fxmapping trie)))))
 
-(define (imapping-size imap)
-  (assume (imapping? imap))
-  (let lp ((acc 0) (t (imapping-trie imap)))
-    (cond ((not t) acc)
-          ((leaf? t) (+ acc 1))
-          (else
-           (lp (lp acc (branch-left t)) (branch-right t))))))
+(define (fxmapping-delete-max fxmap)
+  (fxmapping-update-max fxmap
+                        (lambda (_k _v _rep delete)
+                          (delete))))
 
-(define (imapping-count pred imap)
+(define (fxmapping-update-max fxmap success)
+  (assume (fxmapping? fxmap))
+  (assume (not (fxmapping-empty? fxmap)))
+  (assume (procedure? success))
+  (trie-update-max (fxmapping-trie fxmap) success raw-fxmapping))
+
+(define (fxmapping-pop-max fxmap)
+  (assume (fxmapping? fxmap))
+  (if (fxmapping-empty? fxmap)
+      (error "fxmapping-pop-max: empty fxmapping" fxmap)
+      (let-values (((k v trie) (trie-pop-max (fxmapping-trie fxmap))))
+        (values k v (raw-fxmapping trie)))))
+
+;;;; The whole fxmapping
+
+(define (fxmapping-size fxmap)
+  (assume (fxmapping? fxmap))
+  (trie-size (fxmapping-trie fxmap)))
+
+(define fxmapping-find
+  (case-lambda
+    ((pred fxmap failure)
+     (fxmapping-find pred fxmap failure values))
+    ((pred fxmap failure success)
+     (assume (procedure? pred))
+     (assume (fxmapping? fxmap))
+     (assume (procedure? failure))
+     (assume (procedure? success))
+     (trie-find pred (fxmapping-trie fxmap) failure success))))
+
+(define (fxmapping-count pred fxmap)
   (assume (procedure? pred))
-  (imapping-fold-left (lambda (v acc)
-                        (if (pred v) (+ 1 acc) acc))
-                      0
-                      imap))
+  (fxmapping-fold (lambda (k v acc)
+                    (if (pred k v) (+ 1 acc) acc))
+                  0
+                  fxmap))
 
-(define (imapping-count/key pred imap)
-  (assume (procedure? pred))
-  (imapping-fold-left/key
-   (lambda (k v sum)
-     (if (pred k v) (+ 1 sum) sum))
-   0
-   imap))
-
-(define (imapping-any? pred imap)
+(define (fxmapping-any? pred fxmap)
   (assume (procedure? pred))
   (call-with-current-continuation
    (lambda (return)
-     (imapping-fold-left (lambda (v _)
-                           (and (pred v) (return #t)))
-                         #f
-                         imap))))
+     (fxmapping-fold (lambda (k v _)
+                       (and (pred k v) (return #t)))
+                     #f
+                     fxmap))))
 
-(define (imapping-every? pred imap)
+(define (fxmapping-every? pred fxmap)
   (assume (procedure? pred))
   (call-with-current-continuation
    (lambda (return)
-     (imapping-fold-left (lambda (v _)
-                           (or (pred v) (return #f)))
-                         #t
-                         imap))))
+     (fxmapping-fold (lambda (k v _)
+                       (or (pred k v) (return #f)))
+                     #t
+                     fxmap))))
 
 ;;;; Mapping and folding
 
-;; Map proc over the values of imap, inserting result values under
+;; Map proc over the assocs. of fxmap, inserting result values under
 ;; the same key.
 ;; This is *not* the same as SRFI 146's mapping-map.
-(define (imapping-map proc imap)
+(define (fxmapping-map proc fxmap)
   (assume (procedure? proc))
-  (raw-imapping
-   (imapping-fold-left/key (lambda (k v t)
-                             (trie-insert t k (proc v)))
-                           #f
-                           imap)))
-
-(define (imapping-map/key proc imap)
-  (assume (procedure? proc))
-  (raw-imapping
-   (imapping-fold-left/key (lambda (k v t)
-                             (trie-insert t k (proc k v)))
-                           #f
-                           imap)))
+  (assume (fxmapping? fxmap))
+  (raw-fxmapping (trie-map proc (fxmapping-trie fxmap))))
 
 (define (unspecified)
   (if #f #f))
 
-(define (imapping-for-each proc imap)
+(define (fxmapping-for-each proc fxmap)
   (assume (procedure? proc))
-  (imapping-fold-left (lambda (v _)
-                        (proc v)
-                        (unspecified))
-                      (unspecified)
-                      imap))
+  (fxmapping-fold (lambda (k v _)
+                    (proc k v)
+                    (unspecified))
+                  (unspecified)
+                  fxmap))
 
-(define (imapping-for-each/key proc imap)
+(define (fxmapping-fold proc nil fxmap)
   (assume (procedure? proc))
-  (imapping-fold-left/key (lambda (k v _)
-                            (proc k v)
-                            (unspecified))
-                          (unspecified)
-                          imap))
+  (assume (fxmapping? fxmap))
+  (let ((trie (fxmapping-trie fxmap)))
+    (tmatch trie
+      ((branch ? ,m ,l ,r) (guard (negative? m))
+       (trie-fold-left proc (trie-fold-left proc nil r) l))
+      ((branch ? ? ,l ,r)
+       (trie-fold-left proc (trie-fold-left proc nil l) r))
+      (else (trie-fold-left proc nil trie)))))
 
-(define (imapping-fold-left proc nil imap)
+(define (fxmapping-fold-right proc nil fxmap)
   (assume (procedure? proc))
-  (assume (imapping? imap))
-  (let ((trie (imapping-trie imap)))
-    (if (branch? trie)
-        (let*-branch (((p m l r) trie))
-          (if (negative? m)
-              (trie-fold-left proc (trie-fold-left proc nil r) l)
-              (trie-fold-left proc (trie-fold-left proc nil l) r)))
-        (trie-fold-left proc nil trie))))
+  (assume (fxmapping? fxmap))
+  (let ((trie (fxmapping-trie fxmap)))
+    (tmatch trie
+      ((branch ? ,m ,l ,r) (guard (negative? m))
+       (trie-fold-right proc (trie-fold-right proc nil l) r))
+      ((branch ? ? ,l ,r)
+       (trie-fold-right proc (trie-fold-right proc nil r) l))
+      (else (trie-fold-right proc nil trie)))))
 
-(define (imapping-fold-left/key proc nil imap)
+(define (fxmapping-map->list proc fxmap)
   (assume (procedure? proc))
-  (assume (imapping? imap))
-  (let ((trie (imapping-trie imap)))
-    (if (branch? trie)
-        (let*-branch (((p m l r) trie))
-          (if (negative? m)
-              (trie-fold-left/key proc (trie-fold-left/key proc nil r) l)
-              (trie-fold-left/key proc (trie-fold-left/key proc nil l) r)))
-        (trie-fold-left/key proc nil trie))))
+  (fxmapping-fold-right (lambda (k v us)
+                          (cons (proc k v) us))
+                        '()
+                        fxmap))
 
-(define (imapping-fold-right proc nil imap)
-  (assume (procedure? proc))
-  (assume (imapping? imap))
-  (let ((trie (imapping-trie imap)))
-    (if (branch? trie)
-        (let*-branch (((p m l r) trie))
-          (if (negative? m)
-              (trie-fold-right proc (trie-fold-right proc nil l) r)
-              (trie-fold-right proc (trie-fold-right proc nil r) l)))
-        (trie-fold-right proc nil trie))))
-
-(define (imapping-fold-right/key proc nil imap)
-  (assume (procedure? proc))
-  (assume (imapping? imap))
-  (let ((trie (imapping-trie imap)))
-    (if (branch? trie)
-        (let*-branch (((p m l r) trie))
-          (if (negative? m)
-              (trie-fold-right/key proc (trie-fold-right/key proc nil l) r)
-              (trie-fold-right/key proc (trie-fold-right/key proc nil r) l)))
-        (trie-fold-right/key proc nil trie))))
-
-(define (imapping-map->list proc imap)
-  (assume (procedure? proc))
-  (imapping-fold-right (lambda (v us)
-                         (cons (proc v) us))
-                       '()
-                       imap))
-
-(define (imapping-map/key->list proc imap)
-  (assume (procedure? proc))
-  (imapping-fold-right/key (lambda (k v us)
-                             (cons (proc k v) us))
-                           '()
-                           imap))
-
-(define (imapping-filter pred imap)
+(define (fxmapping-filter pred fxmap)
   (assume (procedure? pred))
-  (assume (imapping? imap))
-  (raw-imapping (trie-filter pred (imapping-trie imap))))
+  (assume (fxmapping? fxmap))
+  (raw-fxmapping (trie-filter pred (fxmapping-trie fxmap))))
 
-(define (imapping-filter/key pred imap)
+(define (fxmapping-remove pred fxmap)
+  (fxmapping-filter (lambda (k v) (not (pred k v))) fxmap))
+
+(define (fxmapping-partition pred fxmap)
   (assume (procedure? pred))
-  (assume (imapping? imap))
-  (raw-imapping (trie-filter/key pred (imapping-trie imap))))
-
-(define (imapping-remove pred imap)
-  (imapping-filter (lambda (v) (not (pred v))) imap))
-
-(define (imapping-remove/key pred imap)
-  (imapping-filter/key (lambda (k v) (not (pred k v))) imap))
-
-(define (imapping-partition pred imap)
-  (assume (procedure? pred))
-  (assume (imapping? imap))
+  (assume (fxmapping? fxmap))
   (let-values (((tin tout)
-                (trie-partition pred (imapping-trie imap) #f)))
-    (values (raw-imapping tin) (raw-imapping tout))))
-
-(define (imapping-partition/key pred imap)
-  (assume (procedure? pred))
-  (assume (imapping? imap))
-  (let-values (((tin tout)
-                (trie-partition pred (imapping-trie imap) #t)))
-    (values (raw-imapping tin) (raw-imapping tout))))
+                (trie-partition pred (fxmapping-trie fxmap))))
+    (values (raw-fxmapping tin) (raw-fxmapping tout))))
 
 ;;;; Conversion
 
-(define (imapping->alist imap)
-  (imapping-fold-right/key (lambda (k v as) (cons (cons k v) as))
-                           '()
-                           imap))
+(define (fxmapping->alist fxmap)
+  (fxmapping-fold-right (lambda (k v as) (cons (cons k v) as))
+                        '()
+                        fxmap))
 
-(define (imapping-keys imap)
-  (imapping-fold-right/key (lambda (k _ ks) (cons k ks)) '() imap))
+(define (fxmapping->decreasing-alist fxmap)
+  (fxmapping-fold (lambda (k v as) (cons (cons k v) as))
+                  '()
+                  fxmap))
 
-(define (imapping-values imap)
-  (imapping-fold-right cons '() imap))
+(define (fxmapping-keys fxmap)
+  (fxmapping-fold-right (lambda (k _ ks) (cons k ks)) '() fxmap))
+
+(define (fxmapping-values fxmap)
+  (fxmapping-fold-right (lambda (_ v vs) (cons v vs)) '() fxmap))
+
+(define (fxmapping->generator fxmap)
+  (assume (fxmapping? fxmap))
+  (make-coroutine-generator
+   (lambda (yield)
+     (fxmapping-fold (lambda (k v _) (yield (cons k v)))
+                     #f
+                     fxmap))))
+
+(define (fxmapping->decreasing-generator fxmap)
+  (assume (fxmapping? fxmap))
+  (make-coroutine-generator
+   (lambda (yield)
+     (fxmapping-fold-right (lambda (k v _) (yield (cons k v)))
+                           #f
+                           fxmap))))
 
 ;;;; Comparison
 
-(define (imapping=? comp imap1 imap2 . imaps)
+(define (fxmapping=? comp fxmap1 fxmap2 . imaps)
   (assume (comparator? comp))
-  (assume (imapping? imap1))
-  (let ((imap-eq1 (lambda (imap)
-                    (assume (imapping? imap))
-                    (or (eqv? imap1 imap)
-                        (trie=? comp
-                                (imapping-trie imap1)
-                                (imapping-trie imap))))))
-    (and (imap-eq1 imap2)
+  (assume (fxmapping? fxmap1))
+  (let ((fxmap-eq1 (lambda (fxmap)
+                     (assume (fxmapping? fxmap))
+                     (or (eqv? fxmap1 fxmap)
+                         (trie=? comp
+                                 (fxmapping-trie fxmap1)
+                                 (fxmapping-trie fxmap))))))
+    (and (fxmap-eq1 fxmap2)
          (or (null? imaps)
-             (every imap-eq1 imaps)))))
+             (every fxmap-eq1 imaps)))))
 
-(define (imapping<? comp imap1 imap2 . imaps)
+(define (fxmapping<? comp fxmap1 fxmap2 . imaps)
   (assume (comparator? comp))
-  (assume (imapping? imap1))
-  (assume (imapping? imap2))
-  (let lp ((t1 (imapping-trie imap1))
-           (t2 (imapping-trie imap2))
+  (assume (fxmapping? fxmap1))
+  (assume (fxmapping? fxmap2))
+  (let lp ((t1 (fxmapping-trie fxmap1))
+           (t2 (fxmapping-trie fxmap2))
            (imaps imaps))
     (and (trie-proper-subset? comp t1 t2)
-         (match imaps
+         (pmatch imaps
            (() #t)
-           ((m . imaps*) (lp t2 (imapping-trie m) imaps*))))))
+           ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
 
-(define (imapping>? comp imap1 imap2 . imaps)
+(define (fxmapping>? comp fxmap1 fxmap2 . imaps)
   (assume (comparator? comp))
-  (assume (imapping? imap1))
-  (assume (imapping? imap2))
-  (let lp ((t1 (imapping-trie imap1))
-           (t2 (imapping-trie imap2))
+  (assume (fxmapping? fxmap1))
+  (assume (fxmapping? fxmap2))
+  (let lp ((t1 (fxmapping-trie fxmap1))
+           (t2 (fxmapping-trie fxmap2))
            (imaps imaps))
     (and (trie-proper-subset? comp t2 t1)
-         (match imaps
+         (pmatch imaps
            (() #t)
-           ((m . imaps*) (lp t2 (imapping-trie m) imaps*))))))
+           ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
 
-(define (imapping<=? comp imap1 imap2 . imaps)
+(define (fxmapping<=? comp fxmap1 fxmap2 . imaps)
   (assume (comparator? comp))
-  (assume (imapping? imap1))
-  (assume (imapping? imap2))
-  (let lp ((t1 (imapping-trie imap1))
-           (t2 (imapping-trie imap2))
+  (assume (fxmapping? fxmap1))
+  (assume (fxmapping? fxmap2))
+  (let lp ((t1 (fxmapping-trie fxmap1))
+           (t2 (fxmapping-trie fxmap2))
            (imaps imaps))
     (and (memv (trie-subset-compare comp t1 t2) '(less equal))
-         (match imaps
+         (pmatch imaps
            (() #t)
-           ((m . imaps*) (lp t2 (imapping-trie m) imaps*))))))
+           ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
 
-(define (imapping>=? comp imap1 imap2 . imaps)
+(define (fxmapping>=? comp fxmap1 fxmap2 . imaps)
   (assume (comparator? comp))
-  (assume (imapping? imap1))
-  (assume (imapping? imap2))
-  (let lp ((t1 (imapping-trie imap1))
-           (t2 (imapping-trie imap2))
+  (assume (fxmapping? fxmap1))
+  (assume (fxmapping? fxmap2))
+  (let lp ((t1 (fxmapping-trie fxmap1))
+           (t2 (fxmapping-trie fxmap2))
            (imaps imaps))
-    (and (memv (trie-subset-compare comp t1 t2) '(greater equal))
-         (match imaps
+    (and (memv (trie-subset-compare comp t2 t1) '(less equal))
+         (pmatch imaps
            (() #t)
-           ((m . imaps*) (lp t2 (imapping-trie m) imaps*))))))
+           ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
 
 ;;;; Set theory operations
 
-(define (imapping-union imap . rest)
-  (assume (imapping? imap))
+(define (fxmapping-union . args)
+  (apply fxmapping-union/combinator first-arg args))
+
+(define (fxmapping-intersection . args)
+  (apply fxmapping-intersection/combinator first-arg args))
+
+(define fxmapping-difference
+  (case-lambda
+    ((fxmap1 fxmap2)
+     (assume (fxmapping? fxmap1))
+     (assume (fxmapping? fxmap2))
+     (raw-fxmapping
+      (trie-difference (fxmapping-trie fxmap1)
+                       (fxmapping-trie fxmap2))))
+    ((fxmap . rest)
+     (assume (fxmapping? fxmap))
+     (assume (pair? rest))
+     (raw-fxmapping
+      (trie-difference (fxmapping-trie fxmap)
+                       (fxmapping-trie
+                        (apply fxmapping-union rest)))))))
+
+(define (fxmapping-xor fxmap1 fxmap2)
+  (assume (fxmapping? fxmap1))
+  (assume (fxmapping? fxmap2))
+  (raw-fxmapping
+   (trie-xor (fxmapping-trie fxmap1) (fxmapping-trie fxmap2))))
+
+(define (fxmapping-union/combinator proc fxmap . rest)
+  (assume (procedure? proc))
+  (assume (fxmapping? fxmap))
   (assume (pair? rest))
-  (raw-imapping
+  (raw-fxmapping
    (fold (lambda (im t)
-           (assume (imapping? im))
-           (trie-merge second (imapping-trie im) t))
-         (imapping-trie imap)
+           (assume (fxmapping? im))
+           (trie-merge proc t (fxmapping-trie im)))
+         (fxmapping-trie fxmap)
          rest)))
 
-(define (imapping-intersection imap . rest)
-  (assume (imapping? imap))
+(define (fxmapping-intersection/combinator proc fxmap . rest)
+  (assume (procedure? proc))
+  (assume (fxmapping? fxmap))
   (assume (pair? rest))
-  (raw-imapping
+  (raw-fxmapping
    (fold (lambda (im t)
-           (assume (imapping? im))
-           (trie-intersection (imapping-trie im) t))
-         (imapping-trie imap)
+           (assume (fxmapping? im))
+           (trie-intersection proc t (fxmapping-trie im)))
+         (fxmapping-trie fxmap)
          rest)))
-
-(define (imapping-difference imap . rest)
-  (assume (imapping? imap))
-  (assume (pair? rest))
-  (raw-imapping
-   (trie-difference (imapping-trie imap)
-                    (imapping-trie
-                     (match rest
-                       ((imap2) imap2)
-                       ((imap2 . imaps)
-                        (apply imapping-union imap2 imaps)))))))
-
-(define (imapping-xor imap1 imap2)
-  (assume (imapping? imap1))
-  (assume (imapping? imap2))
-  (raw-imapping
-   (trie-xor (imapping-trie imap1) (imapping-trie imap2))))
 
 ;;;; Subsets
 
-(define (isubmapping= imap key)
-  (assume (imapping? imap))
-  (assume (valid-integer? key))
-  (cond ((imapping-lookup imap key) => (lambda (v) (imapping key v)))
-        (else (imapping))))
+(define (fxsubmapping= fxmap key)
+  (fxmapping-ref fxmap
+                 key
+                 fxmapping
+                 (lambda (v) (fxmapping key v))))
 
-(define (imapping-open-interval imap low high)
-  (assume (imapping? imap))
+(define (fxmapping-open-interval fxmap low high)
+  (assume (fxmapping? fxmap))
   (assume (valid-integer? low))
   (assume (valid-integer? high))
   (assume (fx>=? high low))
-  (raw-imapping
-   (subtrie-interval (imapping-trie imap) low high #f #f)))
+  (raw-fxmapping
+   (subtrie-interval (fxmapping-trie fxmap) low high #f #f)))
 
-(define (imapping-closed-interval imap low high)
-  (assume (imapping? imap))
+(define (fxmapping-closed-interval fxmap low high)
+  (assume (fxmapping? fxmap))
   (assume (valid-integer? low))
   (assume (valid-integer? high))
   (assume (fx>=? high low))
-  (raw-imapping
-   (subtrie-interval (imapping-trie imap) low high #t #t)))
+  (raw-fxmapping
+   (subtrie-interval (fxmapping-trie fxmap) low high #t #t)))
 
-(define (imapping-open-closed-interval imap low high)
-  (assume (imapping? imap))
+(define (fxmapping-open-closed-interval fxmap low high)
+  (assume (fxmapping? fxmap))
   (assume (valid-integer? low))
   (assume (valid-integer? high))
   (assume (fx>=? high low))
-  (raw-imapping
-   (subtrie-interval (imapping-trie imap) low high #f #t)))
+  (raw-fxmapping
+   (subtrie-interval (fxmapping-trie fxmap) low high #f #t)))
 
-(define (imapping-closed-open-interval imap low high)
-  (assume (imapping? imap))
+(define (fxmapping-closed-open-interval fxmap low high)
+  (assume (fxmapping? fxmap))
   (assume (valid-integer? low))
   (assume (valid-integer? high))
   (assume (fx>=? high low))
-  (raw-imapping
-   (subtrie-interval (imapping-trie imap) low high #t #f)))
+  (raw-fxmapping
+   (subtrie-interval (fxmapping-trie fxmap) low high #t #f)))
 
-(define (isubmapping< imap key)
-  (assume (imapping? imap))
+(define (fxsubmapping< fxmap key)
+  (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
-  (raw-imapping (subtrie< (imapping-trie imap) key #f)))
+  (raw-fxmapping (subtrie< (fxmapping-trie fxmap) key #f)))
 
-(define (isubmapping<= imap key)
-  (assume (imapping? imap))
+(define (fxsubmapping<= fxmap key)
+  (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
-  (raw-imapping (subtrie< (imapping-trie imap) key #t)))
+  (raw-fxmapping (subtrie< (fxmapping-trie fxmap) key #t)))
 
-(define (isubmapping> imap key)
-  (assume (imapping? imap))
+(define (fxsubmapping> fxmap key)
+  (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
-  (raw-imapping (subtrie> (imapping-trie imap) key #f)))
+  (raw-fxmapping (subtrie> (fxmapping-trie fxmap) key #f)))
 
-(define (isubmapping>= imap key)
-  (assume (imapping? imap))
+(define (fxsubmapping>= fxmap key)
+  (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
-  (raw-imapping (subtrie> (imapping-trie imap) key #t)))
+  (raw-fxmapping (subtrie> (fxmapping-trie fxmap) key #t)))
+
+(define (fxmapping-split fxmap k)
+  (assume (fxmapping? fxmap))
+  (assume (integer? k))
+  (let-values (((trie-low trie-high)
+                (trie-split (fxmapping-trie fxmap) k)))
+    (values (raw-fxmapping trie-low) (raw-fxmapping trie-high))))
+
+;;;; fxmappings as relations
+
+(define (fxmapping-relation-map proc fxmap)
+  (assume (procedure? proc))
+  (assume (fxmapping? fxmap))
+  (raw-fxmapping (trie-relation-map proc (fxmapping-trie fxmap))))
