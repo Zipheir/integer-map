@@ -37,27 +37,33 @@
   (left branch-left : trie-t)
   (right branch-right : trie-t))
 
+(: valid-integer? (* --> boolean))
 (define (valid-integer? x) (fixnum? x))
 
 ;; Zero the bits of k at and below (BE) the set bit of m.
+(: mask (fixnum fixnum --> fixnum))
 (define (mask k m)
   (if (fx=? m fx-least)
       0
       (fxand k (fxxor (fxnot (fx- m 1)) m))))
 
 ;; Does the m-masked prefix of k match p?
+(: match-prefix? (fixnum fixnum fixnum --> boolean))
 (define (match-prefix? k p m)
   (fx=? (mask k m) p))
 
+(: branching-bit (fixnum fixnum fixnum fixnum --> fixnum))
 (define (branching-bit p1 m1 p2 m2)
   (if (fxnegative? (fxxor p1 p2))
       fx-least        ; different signs
       (highest-bit-mask (fxxor p1 p2) (fxmax 1 (fx* 2 (fxmax m1 m2))))))
 
 ;; Two's-complement trick.
+(: lowest-set-bit (fixnum --> fixnum))
 (define (lowest-set-bit b)
   (fxand b (fxneg b)))
 
+(: highest-bit-mask (fixnum fixnum --> fixnum))
 (define (highest-bit-mask k guess-m)
   (let lp ((x (fxand k (fxnot (fx- guess-m 1)))))
     (let ((m (lowest-set-bit x)))
@@ -65,6 +71,7 @@
           m
           (lp (fx- x m))))))
 
+(: zero-bit? (fixnum fixnum --> boolean))
 (define (zero-bit? k m)
   (fxzero? (fxand k m)))
 
@@ -125,6 +132,7 @@
               t))))))
     (update trie)))
 
+(: trie-update (trie-t fixnum procedure procedure procedure -> *))
 (define (trie-update trie key proc failure wrapper)
   (letrec
    ((update
@@ -146,6 +154,7 @@
               (failure)))))))
     (update trie values)))
 
+(: trie-alter (trie-t fixnum procedure procedure procedure -> *))
 (define (trie-alter trie key failure success wrapper)
   (letrec
    ((update
@@ -185,6 +194,7 @@
 
 ;; If `key' has an association in `trie', then call `success' with
 ;; on the associated value.  Otherwise, call `failure'.
+(: trie-assoc (trie-t fixnum procedure procedure -> *))
 (define (trie-assoc trie key failure success)
   (letrec
    ((search
@@ -197,6 +207,7 @@
 
 ;; If `key' has an association in `trie', then return the associated
 ;; value.  Otherwise, return `default'.
+(: trie-assoc/default (trie-t fixnum * --> *))
 (define (trie-assoc/default trie key default)
   (letrec
    ((search
@@ -208,6 +219,7 @@
     (search trie)))
 
 ;; Return the number of associations in trie.
+(: trie-size (trie-t --> fixnum))
 (define (trie-size trie)
   (if (trie-empty? trie)
       0
@@ -218,6 +230,7 @@
                         (lambda (m)
                           (lp m (branch-right t) kont))))))))
 
+(: trie-contains? (trie-t fixnum --> boolean))
 (define (trie-contains? trie key)
   (letrec
    ((search
@@ -228,6 +241,7 @@
        (else #f))))
     (search trie)))
 
+(: trie-find ((fixnum * -> boolean) trie-t procedure procedure -> *))
 (define (trie-find pred trie failure success)
   (letrec
    ((search
@@ -241,6 +255,7 @@
        (search r (lambda () (search l failure))))
       (else (search trie failure)))))
 
+(: branching-bit-higher? (fixnum fixnum --> boolean))
 (define (branching-bit-higher? mask1 mask2)
   (if (negative? (fxxor mask1 mask2))  ; signs differ
       (negative? mask1)
