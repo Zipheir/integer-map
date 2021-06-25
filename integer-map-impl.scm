@@ -393,8 +393,7 @@
   (assume (fxmapping? fxmap))
   (raw-fxmapping (trie-map proc (fxmapping-trie fxmap))))
 
-(define (unspecified)
-  (if #f #f))
+(define unspecified void)
 
 (: fxmapping-for-each ((fixnum * -> *) fxmapping-t -> undefined))
 (define (fxmapping-for-each proc fxmap)
