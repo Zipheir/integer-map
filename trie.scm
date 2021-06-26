@@ -16,9 +16,6 @@
 (define (swap-last-args proc)
   (lambda (k x y) (proc k y x)))
 
-(define-type trie-t
-  (or false (struct <leaf>) (struct <branch>)))
-
 (define the-empty-trie #f)
 
 (define (trie-empty? t) (not t))
@@ -26,16 +23,16 @@
 (define-record-type <leaf>
   (leaf key value)
   leaf?
-  (key leaf-key : fixnum)
-  (value leaf-value : *))
+  (key leaf-key)
+  (value leaf-value))
 
 (define-record-type <branch>
   (raw-branch prefix branching-bit left right)
   branch?
-  (prefix branch-prefix : fixnum)
-  (branching-bit branch-branching-bit : fixnum)
-  (left branch-left : trie-t)
-  (right branch-right : trie-t))
+  (prefix branch-prefix)
+  (branching-bit branch-branching-bit)
+  (left branch-left)
+  (right branch-right))
 
 (define (valid-integer? x) (fixnum? x))
 
