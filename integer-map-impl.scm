@@ -78,12 +78,7 @@
 (define (alist->fxmapping as)
   (alist->fxmapping/combinator second-arg as))
 
-(: fxmapping-unfold
-   ((#!rest -> boolean)
-    (#!rest -> fixnum *)
-    (#!rest -> *)
-    #!rest
-    -> fxmapping-t))
+;; Type TODO.
 (define fxmapping-unfold
   (case-lambda
     ((stop? mapper successor seed)                ; fast path
@@ -109,7 +104,7 @@
              (assume (valid-integer? k))
              (lp (trie-adjoin trie k v) seeds*)))))))
 
-(: fxmapping-accumulate ((procedure #!rest -> *) #!rest -> fxmapping-t))
+;; Type TODO.
 (define fxmapping-accumulate
   (case-lambda
     ((proc seed)                                ; fast path
@@ -261,8 +256,7 @@
     (fxmapping-remove (lambda (k _) (fxmapping-contains? key-map k))
                       fxmap)))
 
-(: fxmapping-update
-   (fxmapping-t fixnum (-> *) #!rest -> *))
+;; Type TODO.
 (define fxmapping-update
   (case-lambda
     ((fxmap key success)
@@ -278,11 +272,7 @@
      (assume (procedure? failure))
      (trie-update (fxmapping-trie fxmap) key success failure raw-fxmapping))))
 
-(: fxmapping-alter (fxmapping-t
-                    fixnum
-                    (procedure procedure -> *)
-                    (fixnum * procedure procedure -> *)
-                    -> *))
+;; Type TODO.
 (define (fxmapping-alter fxmap key failure success)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
@@ -296,8 +286,7 @@
                         (lambda (_k _v _rep delete)
                           (delete))))
 
-(: fxmapping-update-min
-   (fxmapping-t (fixnum * procedure procedure -> *) -> *))
+;; Type TODO.
 (define (fxmapping-update-min fxmap success)
   (assume (fxmapping? fxmap))
   (assume (not (fxmapping-empty? fxmap)))
@@ -318,8 +307,7 @@
                         (lambda (_k _v _rep delete)
                           (delete))))
 
-(: fxmapping-update-max
-   (fxmapping-t (fixnum * procedure procedure -> *) -> *))
+;; Type TODO.
 (define (fxmapping-update-max fxmap success)
   (assume (fxmapping? fxmap))
   (assume (not (fxmapping-empty? fxmap)))
@@ -362,7 +350,6 @@
                   0
                   fxmap))
 
-(: fxmapping-any? ((fixnum * -> boolean) fxmapping-t -> boolean))
 (define (fxmapping-any? pred fxmap)
   (assume (procedure? pred))
   (call-with-current-continuation
@@ -372,7 +359,6 @@
                      #f
                      fxmap))))
 
-(: fxmapping-every? ((fixnum * -> boolean) fxmapping-t -> boolean))
 (define (fxmapping-every? pred fxmap)
   (assume (procedure? pred))
   (call-with-current-continuation
@@ -387,7 +373,6 @@
 ;; Map proc over the assocs. of fxmap, inserting result values under
 ;; the same key.
 ;; This is *not* the same as SRFI 146's mapping-map.
-(: fxmapping-map ((fixnum * -> *) fxmapping-t -> fxmapping-t))
 (define (fxmapping-map proc fxmap)
   (assume (procedure? proc))
   (assume (fxmapping? fxmap))
@@ -395,7 +380,6 @@
 
 (define unspecified void)
 
-(: fxmapping-for-each ((fixnum * -> *) fxmapping-t -> undefined))
 (define (fxmapping-for-each proc fxmap)
   (assume (procedure? proc))
   (fxmapping-fold (lambda (k v _)
@@ -404,7 +388,6 @@
                   (unspecified)
                   fxmap))
 
-(: fxmapping-fold ((fixnum * * -> *) * fxmapping-t -> *))
 (define (fxmapping-fold proc nil fxmap)
   (assume (procedure? proc))
   (assume (fxmapping? fxmap))
@@ -416,7 +399,6 @@
        (trie-fold-left proc (trie-fold-left proc nil l) r))
       (else (trie-fold-left proc nil trie)))))
 
-(: fxmapping-fold-right ((fixnum * * -> *) * fxmapping-t -> *))
 (define (fxmapping-fold-right proc nil fxmap)
   (assume (procedure? proc))
   (assume (fxmapping? fxmap))
@@ -428,7 +410,6 @@
        (trie-fold-right proc (trie-fold-right proc nil r) l))
       (else (trie-fold-right proc nil trie)))))
 
-(: fxmapping-map->list ((fixnum * -> *) fxmapping-t -> (list-of *)))
 (define (fxmapping-map->list proc fxmap)
   (assume (procedure? proc))
   (fxmapping-fold-right (lambda (k v us)
@@ -436,18 +417,14 @@
                         '()
                         fxmap))
 
-(: fxmapping-filter ((fixnum * -> boolean) fxmapping-t -> fxmapping-t))
 (define (fxmapping-filter pred fxmap)
   (assume (procedure? pred))
   (assume (fxmapping? fxmap))
   (raw-fxmapping (trie-filter pred (fxmapping-trie fxmap))))
 
-(: fxmapping-remove ((fixnum * -> boolean) fxmapping-t -> fxmapping-t))
 (define (fxmapping-remove pred fxmap)
   (fxmapping-filter (lambda (k v) (not (pred k v))) fxmap))
 
-(: fxmapping-partition
-   ((fixnum * -> boolean) fxmapping-t -> fxmapping-t fxmapping-t))
 (define (fxmapping-partition pred fxmap)
   (assume (procedure? pred))
   (assume (fxmapping? fxmap))
@@ -457,28 +434,22 @@
 
 ;;;; Conversion
 
-(: fxmapping->alist (fxmapping-t --> (list-of (pair fixnum *))))
 (define (fxmapping->alist fxmap)
   (fxmapping-fold-right (lambda (k v as) (cons (cons k v) as))
                         '()
                         fxmap))
 
-(: fxmapping->decreasing-alist
-   (fxmapping-t --> (list-of (pair fixnum *))))
 (define (fxmapping->decreasing-alist fxmap)
   (fxmapping-fold (lambda (k v as) (cons (cons k v) as))
                   '()
                   fxmap))
 
-(: fxmapping-keys (fxmapping-t --> (list-of fixnum)))
 (define (fxmapping-keys fxmap)
   (fxmapping-fold-right (lambda (k _ ks) (cons k ks)) '() fxmap))
 
-(: fxmapping-values (fxmapping-t --> list))
 (define (fxmapping-values fxmap)
   (fxmapping-fold-right (lambda (_ v vs) (cons v vs)) '() fxmap))
 
-(: fxmapping->generator (fxmapping-t -> procedure))
 (define (fxmapping->generator fxmap)
   (assume (fxmapping? fxmap))
   (make-coroutine-generator
@@ -487,7 +458,6 @@
                      #f
                      fxmap))))
 
-(: fxmapping->decreasing-generator (fxmapping-t --> procedure))
 (define (fxmapping->decreasing-generator fxmap)
   (assume (fxmapping? fxmap))
   (make-coroutine-generator
@@ -498,8 +468,6 @@
 
 ;;;; Comparison
 
-(: fxmapping=?
-   ((struct comparator) fxmapping-t fxmapping-t #!rest --> boolean))
 (define (fxmapping=? comp fxmap1 fxmap2 . imaps)
   (assume (comparator? comp))
   (assume (fxmapping? fxmap1))
@@ -513,8 +481,6 @@
          (or (null? imaps)
              (every fxmap-eq1 imaps)))))
 
-(: fxmapping<?
-   ((struct comparator) fxmapping-t fxmapping-t #!rest --> boolean))
 (define (fxmapping<? comp fxmap1 fxmap2 . imaps)
   (assume (comparator? comp))
   (assume (fxmapping? fxmap1))
@@ -527,8 +493,6 @@
            (() #t)
            ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
 
-(: fxmapping>?
-   ((struct comparator) fxmapping-t fxmapping-t #!rest --> boolean))
 (define (fxmapping>? comp fxmap1 fxmap2 . imaps)
   (assume (comparator? comp))
   (assume (fxmapping? fxmap1))
@@ -541,8 +505,6 @@
            (() #t)
            ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
 
-(: fxmapping<=?
-   ((struct comparator) fxmapping-t fxmapping-t #!rest --> boolean))
 (define (fxmapping<=? comp fxmap1 fxmap2 . imaps)
   (assume (comparator? comp))
   (assume (fxmapping? fxmap1))
@@ -555,8 +517,6 @@
            (() #t)
            ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
 
-(: fxmapping>=?
-   ((struct comparator) fxmapping-t fxmapping-t #!rest --> boolean))
 (define (fxmapping>=? comp fxmap1 fxmap2 . imaps)
   (assume (comparator? comp))
   (assume (fxmapping? fxmap1))
@@ -571,15 +531,12 @@
 
 ;;;; Set theory operations
 
-(: fxmapping-union (#!rest fxmapping-t --> fxmapping-t))
 (define (fxmapping-union . args)
   (apply fxmapping-union/combinator first-arg args))
 
-(: fxmapping-intersection (#!rest fxmapping-t --> fxmapping-t))
 (define (fxmapping-intersection . args)
   (apply fxmapping-intersection/combinator first-arg args))
 
-(: fxmapping-difference (#!rest fxmapping-t --> fxmapping-t))
 (define fxmapping-difference
   (case-lambda
     ((fxmap1 fxmap2)
@@ -596,15 +553,12 @@
                        (fxmapping-trie
                         (apply fxmapping-union rest)))))))
 
-(: fxmapping-xor (fxmapping-t fxmapping-t --> fxmapping-t))
 (define (fxmapping-xor fxmap1 fxmap2)
   (assume (fxmapping? fxmap1))
   (assume (fxmapping? fxmap2))
   (raw-fxmapping
    (trie-xor (fxmapping-trie fxmap1) (fxmapping-trie fxmap2))))
 
-(: fxmapping-union/combinator
-   ((fixnum * * -> *) #!rest fxmapping-t --> fxmapping-t))
 (define (fxmapping-union/combinator proc fxmap . rest)
   (assume (procedure? proc))
   (assume (fxmapping? fxmap))
@@ -616,8 +570,6 @@
          (fxmapping-trie fxmap)
          rest)))
 
-(: fxmapping-intersection/combinator
-   ((fixnum * * -> *) #!rest fxmapping-t --> fxmapping-t))
 (define (fxmapping-intersection/combinator proc fxmap . rest)
   (assume (procedure? proc))
   (assume (fxmapping? fxmap))
@@ -631,14 +583,12 @@
 
 ;;;; Subsets
 
-(: fxsubmapping= (fxmapping-t fixnum --> fxmapping-t))
 (define (fxsubmapping= fxmap key)
   (fxmapping-ref fxmap
                  key
                  fxmapping
                  (lambda (v) (fxmapping key v))))
 
-(: fxmapping-open-interval (fxmapping-t fixnum fixnum --> fxmapping-t))
 (define (fxmapping-open-interval fxmap low high)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? low))
@@ -647,7 +597,6 @@
   (raw-fxmapping
    (subtrie-interval (fxmapping-trie fxmap) low high #f #f)))
 
-(: fxmapping-closed-interval (fxmapping-t fixnum fixnum --> fxmapping-t))
 (define (fxmapping-closed-interval fxmap low high)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? low))
@@ -656,8 +605,6 @@
   (raw-fxmapping
    (subtrie-interval (fxmapping-trie fxmap) low high #t #t)))
 
-(: fxmapping-open-closed-interval
-   (fxmapping-t fixnum fixnum --> fxmapping-t))
 (define (fxmapping-open-closed-interval fxmap low high)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? low))
@@ -666,8 +613,6 @@
   (raw-fxmapping
    (subtrie-interval (fxmapping-trie fxmap) low high #f #t)))
 
-(: fxmapping-closed-open-interval
-   (fxmapping-t fixnum fixnum --> fxmapping-t))
 (define (fxmapping-closed-open-interval fxmap low high)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? low))
@@ -676,31 +621,26 @@
   (raw-fxmapping
    (subtrie-interval (fxmapping-trie fxmap) low high #t #f)))
 
-(: fxsubmapping< (fxmapping-t fixnum --> fxmapping-t))
 (define (fxsubmapping< fxmap key)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
   (raw-fxmapping (subtrie< (fxmapping-trie fxmap) key #f)))
 
-(: fxsubmapping<= (fxmapping-t fixnum --> fxmapping-t))
 (define (fxsubmapping<= fxmap key)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
   (raw-fxmapping (subtrie< (fxmapping-trie fxmap) key #t)))
 
-(: fxsubmapping> (fxmapping-t fixnum --> fxmapping-t))
 (define (fxsubmapping> fxmap key)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
   (raw-fxmapping (subtrie> (fxmapping-trie fxmap) key #f)))
 
-(: fxsubmapping>= (fxmapping-t fixnum --> fxmapping-t))
 (define (fxsubmapping>= fxmap key)
   (assume (fxmapping? fxmap))
   (assume (valid-integer? key))
   (raw-fxmapping (subtrie> (fxmapping-trie fxmap) key #t)))
 
-(: fxmapping-split (fxmapping-t fixnum --> fxmapping-t))
 (define (fxmapping-split fxmap k)
   (assume (fxmapping? fxmap))
   (assume (integer? k))
@@ -710,8 +650,6 @@
 
 ;;;; fxmappings as relations
 
-(: fxmapping-relation-map
-   ((fixnum * -> fixnum *) fxmapping-t -> fxmapping-t))
 (define (fxmapping-relation-map proc fxmap)
   (assume (procedure? proc))
   (assume (fxmapping? fxmap))
