@@ -1,12 +1,11 @@
 ((author "Wolfgang Corcoran-Mathe")
  (maintainer "Wolfgang Corcoran-Mathe")
  (synopsis "SRFI 224 integer mappings")
- (version "1.0.1")
+ (version "1.0.2")
  (category data)
- (dependencies srfi-1 srfi-128 srfi-143 srfi-145 srfi-158 typed-records)
+ (dependencies srfi-1 srfi-128 srfi-143 srfi-145 srfi-158)
  (test-dependencies test)
  (license "MIT")
  (components
   (extension integer-map
-             (types-file)
              (csc-options "-O3" "-d1"))))
