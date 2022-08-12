@@ -45,7 +45,8 @@
     'location loc
     'message msg
     'arguments args)
-   (make-property-condition 'type)))
+   (make-property-condition 'type)
+   (make-property-condition 'assertion)))
 
 ;; Raised by fxmapping-ref, etc. when a key is not found in a map
 ;; and there is no other recourse.
@@ -65,7 +66,8 @@
     'location loc
     'message msg
     'arguments args)
-   (make-property-condition 'arity)))
+   (make-property-condition 'arity)
+   (make-property-condition 'assertion)))
 
 (define-syntax assert-type
   (syntax-rules ()
@@ -76,6 +78,11 @@
                              "assertion violation: type check failed"
                              'expr
                              . args))))))
+
+(define (assert-arity loc bool . args)
+  (unless bool
+    (abort
+     (apply make-arity-condition loc "invalid argument count" args))))
 
 (define (assert-fxmap-non-empty loc fxmap)
   (when (fxmapping-empty? fxmap)
@@ -350,16 +357,15 @@
 
 (define (fxmapping-update-max fxmap success)
   (assert-type 'fxmapping-update-max (fxmapping? fxmap))
-  (assert-type 'fxmapping-update-max (not (fxmapping-empty? fxmap)))
   (assert-type 'fxmapping-update-max (procedure? success))
+  (assert-fxmap-non-empty 'fxmapping-update-max fxmap)
   (trie-update-max (fxmapping-trie fxmap) success raw-fxmapping))
 
 (define (fxmapping-pop-max fxmap)
   (assert-type 'fxmapping-pop-max (fxmapping? fxmap))
-  (if (fxmapping-empty? fxmap)
-      (error "fxmapping-pop-max: empty fxmapping" fxmap)
-      (let-values (((k v trie) (trie-pop-max (fxmapping-trie fxmap))))
-        (values k v (raw-fxmapping trie)))))
+  (assert-fxmap-non-empty 'fxmapping-pop-max fxmap)
+  (let-values (((k v trie) (trie-pop-max (fxmapping-trie fxmap))))
+    (values k v (raw-fxmapping trie))))
 
 ;;;; The whole fxmapping
 
@@ -380,6 +386,7 @@
 
 (define (fxmapping-count pred fxmap)
   (assert-type 'fxmapping-count (procedure? pred))
+  (assert-type 'fxmapping-count (fxmapping? fxmap))
   (fxmapping-fold (lambda (k v acc)
                     (if (pred k v) (+ 1 acc) acc))
                   0
@@ -387,6 +394,7 @@
 
 (define (fxmapping-any? pred fxmap)
   (assert-type 'fxmapping-any? (procedure? pred))
+  (assert-type 'fxmapping-any? (fxmapping? fxmap))
   (call-with-current-continuation
    (lambda (return)
      (fxmapping-fold (lambda (k v _)
@@ -396,6 +404,7 @@
 
 (define (fxmapping-every? pred fxmap)
   (assert-type 'fxmapping-every? (procedure? pred))
+  (assert-type 'fxmapping-every? (fxmapping? fxmap))
   (call-with-current-continuation
    (lambda (return)
      (fxmapping-fold (lambda (k v _)
@@ -417,6 +426,7 @@
 
 (define (fxmapping-for-each proc fxmap)
   (assert-type 'fxmapping-for-each (procedure? proc))
+  (assert-type 'fxmapping-for-each (fxmapping? fxmap))
   (fxmapping-fold (lambda (k v _)
                     (proc k v)
                     (unspecified))
@@ -447,6 +457,7 @@
 
 (define (fxmapping-map->list proc fxmap)
   (assert-type 'fxmapping-map->list (procedure? proc))
+  (assert-type 'fxmapping-map->list (fxmapping? fxmap))
   (fxmapping-fold-right (lambda (k v us)
                           (cons (proc k v) us))
                         '()
@@ -582,7 +593,7 @@
                        (fxmapping-trie fxmap2))))
     ((fxmap . rest)
      (assert-type 'fxmapping-difference (fxmapping? fxmap))
-     (assert-type 'fxmapping-difference (pair? rest))
+     (assert-arity 'fxmapping-difference (pair? rest))
      (raw-fxmapping
       (trie-difference (fxmapping-trie fxmap)
                        (fxmapping-trie
@@ -597,7 +608,7 @@
 (define (fxmapping-union/combinator proc fxmap . rest)
   (assert-type 'fxmapping-union/combinator (procedure? proc))
   (assert-type 'fxmapping-union/combinator (fxmapping? fxmap))
-  (assert-type 'fxmapping-union/combinator (pair? rest))
+  (assert-arity 'fxmapping-union/combinator (pair? rest))
   (raw-fxmapping
    (fold (lambda (im t)
            (assert-type 'fxmapping-union/combinator (fxmapping? im))
@@ -608,7 +619,7 @@
 (define (fxmapping-intersection/combinator proc fxmap . rest)
   (assert-type 'fxmapping-intersection/combinator (procedure? proc))
   (assert-type 'fxmapping-intersection/combinator (fxmapping? fxmap))
-  (assert-type 'fxmapping-intersection/combinator (pair? rest))
+  (assert-arity 'fxmapping-intersection/combinator (pair? rest))
   (raw-fxmapping
    (fold (lambda (im t)
            (assert-type 'fxmapping-intersection/combinator (fxmapping? im))
@@ -628,7 +639,7 @@
   (assert-type 'fxmapping-open-interval (fxmapping? fxmap))
   (assert-type 'fxmapping-open-interval (valid-integer? low))
   (assert-type 'fxmapping-open-interval (valid-integer? high))
-  (assert-type 'fxmapping-open-interval (fx>=? high low))
+  (assert 'fxmapping-open-interval (fx>=? high low))
   (raw-fxmapping
    (subtrie-interval (fxmapping-trie fxmap) low high #f #f)))
 
@@ -636,7 +647,7 @@
   (assert-type 'fxmapping-closed-interval (fxmapping? fxmap))
   (assert-type 'fxmapping-closed-interval (valid-integer? low))
   (assert-type 'fxmapping-closed-interval (valid-integer? high))
-  (assert-type 'fxmapping-closed-interval (fx>=? high low))
+  (assert 'fxmapping-closed-interval (fx>=? high low))
   (raw-fxmapping
    (subtrie-interval (fxmapping-trie fxmap) low high #t #t)))
 
@@ -644,7 +655,7 @@
   (assert-type 'fxmapping-open-closed-interval (fxmapping? fxmap))
   (assert-type 'fxmapping-open-closed-interval (valid-integer? low))
   (assert-type 'fxmapping-open-closed-interval (valid-integer? high))
-  (assert-type 'fxmapping-open-closed-interval (fx>=? high low))
+  (assert 'fxmapping-open-closed-interval (fx>=? high low))
   (raw-fxmapping
    (subtrie-interval (fxmapping-trie fxmap) low high #f #t)))
 
@@ -652,7 +663,7 @@
   (assert-type 'fxmapping-closed-open-interval (fxmapping? fxmap))
   (assert-type 'fxmapping-closed-open-interval (valid-integer? low))
   (assert-type 'fxmapping-closed-open-interval (valid-integer? high))
-  (assert-type 'fxmapping-closed-open-interval (fx>=? high low))
+  (assert 'fxmapping-closed-open-interval (fx>=? high low))
   (raw-fxmapping
    (subtrie-interval (fxmapping-trie fxmap) low high #t #f)))
 

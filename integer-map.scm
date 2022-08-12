@@ -48,7 +48,7 @@
    )
 
   (import scheme
-          (except (chicken base) constantly)
+          (except (chicken base) constantly assert)
           (chicken condition)
           (chicken platform)
           (only (srfi 1) fold every)
@@ -61,6 +61,17 @@
 
   ;; R7RS shim
   (define exact inexact->exact)
+
+  (define-syntax assert
+    (syntax-rules ()
+      ((assert loc expr)
+       (unless expr
+         (abort
+          (make-composite-condition
+           (make-property-condition 'exn
+            'location loc
+            'arguments 'expr)
+           (make-property-condition 'assertion)))))))
 
   (include "matchers.scm")
   (include "trie.scm")
