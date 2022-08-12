@@ -21,13 +21,22 @@
 ;;     ((tmatch name exp (e ...) ...)
 ;;      (tmatch-aux name exp (e ...) ...))))
 
+(define (match-exception loc msg . args)
+  (abort
+   (make-composite-condition
+    (make-property-condition 'exn
+     'location loc
+     'message msg
+     'arguments args)
+    (make-property-condition 'match))))
+
 (define-syntax tmatch
   (syntax-rules (else guard)
     ((tmatch (f x ...) cs ...)
      (let ((v (f x ...)))
        (tmatch v cs ...)))
     ((tmatch v)
-     (error "tmatch: no clause matched" v))
+     (match-error 'tmatch "no clause matched" v))
     ((tmatch _ (else e0 e1 ...)) (begin e0 e1 ...))
     ((tmatch v (pat (guard g ...) e0 e1 ...) cs ...)
      (let ((fk (lambda () (tmatch v cs ...))))
@@ -116,7 +125,7 @@
      (let ((v (rator rand ...)))     ; avoid multiple evals
        (pmatch v cs ...)))
     ((pmatch v)  ; no more clauses
-     (error "pmatch failed" v))
+     (match-error 'pmatch "no clause matched" v))
     ((pmatch _ (else e0 e ...)) (begin e0 e ...))
     ((pmatch v (pat (guard g ...) e0 e ...) cs ...)
      (let ((fk (lambda () (pmatch v cs ...))))
