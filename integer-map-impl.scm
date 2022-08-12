@@ -100,7 +100,8 @@
 
 (define (fxmapping . args)
   (raw-fxmapping
-    (plist-fold (lambda (k v trie) (trie-adjoin trie k v))
+    (plist-fold 'fxmapping
+                (lambda (k v trie) (trie-adjoin trie k v))
                 the-empty-trie
                 args)))
 
