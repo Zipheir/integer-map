@@ -21,19 +21,66 @@
 
 ;;;; Utility
 
-(define (plist-fold proc nil ps)
-  (let loop ((b nil) (ps ps))
+(define (plist-fold loc proc nil plist)
+  (let loop ((b nil) (ps plist))
     (pmatch ps
       (() b)
       ((,k ,v . ,ps*)
        (loop (proc k v b) ps*))
-      (else (error "plist-fold: invalid plist")))))
+      (else
+       (abort
+        (make-arity-condition loc "invalid argument list" plist))))))
 
 (define (first-arg _k x _y) x)
 (define (second-arg _k _x y) y)
 
 (define (constantly x)
   (lambda (_) x))
+
+;;;; Conditions and exceptions
+
+(define (make-type-condition loc msg . args)
+  (make-composite-condition
+   (make-property-condition 'exn
+    'location loc
+    'message msg
+    'arguments args)
+   (make-property-condition 'type)))
+
+;; Raised by fxmapping-ref, etc. when a key is not found in a map
+;; and there is no other recourse.
+(define (make-access-condition loc msg . args)
+  (make-composite-condition
+   (make-property-condition 'exn
+    'location loc
+    'message msg
+    'arguments args)
+   (make-property-condition 'access)))
+
+;; Raised by variadic procedures when an incorrect number of arguments
+;; is passed.
+(define (make-arity-condition loc msg . args)
+  (make-composite-condition
+   (make-property-condition 'exn
+    'location loc
+    'message msg
+    'arguments args)
+   (make-property-condition 'arity)))
+
+(define-syntax assert-type
+  (syntax-rules ()
+    ((assert-type loc expr . args)
+     (unless expr
+       (abort
+        (make-type-condition loc
+                             "assertion violation: type check failed"
+                             'expr
+                             . args))))))
+
+(define (assert-fxmap-non-empty loc fxmap)
+  (when (fxmapping-empty? fxmap)
+    (abort
+     (make-access-condition loc "empty fxmapping"))))
 
 ;;;; Type
 
@@ -54,11 +101,11 @@
   (or (pair? x) (null? x)))
 
 (define (alist->fxmapping/combinator comb as)
-  (assume (procedure? comb))
-  (assume (pair-or-null? as))
+  (assert-type 'alist->fxmapping/combinator (procedure? comb))
+  (assert-type 'alist->fxmapping/combinator (pair-or-null? as))
   (raw-fxmapping
     (fold (lambda (p trie)
-            (assume (pair? p) "alist->fxmapping/combinator: not a pair")
+            (assert-type 'alist->fxmapping/combinator (pair? p) p)
             (trie-insert/combine trie (car p) (cdr p) comb))
           the-empty-trie
           as)))
@@ -69,32 +116,32 @@
 (define fxmapping-unfold
   (case-lambda
     ((stop? mapper successor seed)                ; fast path
-     (assume (procedure? stop?))
-     (assume (procedure? mapper))
-     (assume (procedure? successor))
+     (assert-type 'fxmapping-unfold (procedure? stop?))
+     (assert-type 'fxmapping-unfold (procedure? mapper))
+     (assert-type 'fxmapping-unfold (procedure? successor))
      (let lp ((trie the-empty-trie) (seed seed))
        (if (stop? seed)
            (raw-fxmapping trie)
            (let-values (((k v) (mapper seed)))
-             (assume (valid-integer? k))
+             (assert-type 'fxmapping-unfold (valid-integer? k))
              (lp (trie-adjoin trie k v) (successor seed))))))
     ((stop? mapper successor . seeds)             ; variadic path
-     (assume (procedure? stop?))
-     (assume (procedure? mapper))
-     (assume (procedure? successor))
-     (assume (pair? seeds))
+     (assert-type 'fxmapping-unfold (procedure? stop?))
+     (assert-type 'fxmapping-unfold (procedure? mapper))
+     (assert-type 'fxmapping-unfold (procedure? successor))
+     (assert-type 'fxmapping-unfold (pair? seeds))
      (let lp ((trie the-empty-trie) (seeds seeds))
        (if (apply stop? seeds)
            (raw-fxmapping trie)
            (let-values (((k v) (apply mapper seeds))
                         (seeds* (apply successor seeds)))
-             (assume (valid-integer? k))
+             (assert-type 'fxmapping-unfold (valid-integer? k))
              (lp (trie-adjoin trie k v) seeds*)))))))
 
 (define fxmapping-accumulate
   (case-lambda
     ((proc seed)                                ; fast path
-     (assume (procedure? proc))
+     (assert-type 'fxmapping-accumulate (procedure? proc))
      (call-with-current-continuation
       (lambda (k)
         (let lp ((trie the-empty-trie) (seed seed))
@@ -103,8 +150,8 @@
                               seed)))
             (lp (trie-adjoin trie k v) seed*))))))
     ((proc . seeds)                             ; variadic path
-     (assume (procedure? proc))
-     (assume (pair? seeds))
+     (assert-type 'fxmapping-accumulate (procedure? proc))
+     (assert-type 'fxmapping-accumulate (pair? seeds))
      (call-with-current-continuation
       (lambda (k)
         (let lp ((trie the-empty-trie) (seeds seeds))
@@ -117,17 +164,17 @@
 ;;;; Predicates
 
 (define (fxmapping-contains? fxmap n)
-  (assume (fxmapping? fxmap))
-  (assume (valid-integer? n))
+  (assert-type 'fxmapping-contains? (fxmapping? fxmap))
+  (assert-type 'fxmapping-contains? (valid-integer? n))
   (trie-contains? (fxmapping-trie fxmap) n))
 
 (define (fxmapping-empty? fxmap)
-  (assume (fxmapping? fxmap))
+  (assert-type 'fxmapping-empty? (fxmapping? fxmap))
   (eqv? (fxmapping-trie fxmap) the-empty-trie))
 
 (define (fxmapping-disjoint? fxmap1 fxmap2)
-  (assume (fxmapping? fxmap1))
-  (assume (fxmapping? fxmap2))
+  (assert-type 'fxmapping-disjoint? (fxmapping? fxmap1))
+  (assert-type 'fxmapping-disjoint? (fxmapping? fxmap2))
   (trie-disjoint? (fxmapping-trie fxmap1) (fxmapping-trie fxmap2)))
 
 ;;;; Accessors
@@ -137,44 +184,54 @@
     ((fxmap key)
      (fxmapping-ref fxmap
                     key
-                    (lambda () (error "fxmapping-ref: key not found"
-                                      key
-                                      fxmap))
+                    (lambda ()
+                      (abort
+                       (make-access-condition 'fxmapping-ref
+                                              "no such key in fxmapping"
+                                              key
+                                              fxmap)))
                     values))
     ((fxmap key failure)
      (fxmapping-ref fxmap key failure values))
     ((fxmap key failure success)
-     (assume (fxmapping? fxmap))
-     (assume (valid-integer? key))
-     (assume (procedure? failure))
-     (assume (procedure? success))
+     (assert-type 'fxmapping-ref (fxmapping? fxmap))
+     (assert-type 'fxmapping-ref (valid-integer? key))
+     (assert-type 'fxmapping-ref (procedure? failure))
+     (assert-type 'fxmapping-ref (procedure? success))
      (trie-assoc (fxmapping-trie fxmap) key failure success))))
 
 (define (fxmapping-ref/default fxmap key default)
-  (assume (fxmapping? fxmap))
-  (assume (valid-integer? key))
+  (assert-type 'fxmapping-ref/default (fxmapping? fxmap))
+  (assert-type 'fxmapping-ref/default (valid-integer? key))
   (trie-assoc/default (fxmapping-trie fxmap) key default))
 
 (define (fxmapping-min fxmap)
-  (if (fxmapping-empty? fxmap)
-      (error "fxmapping-min: empty fxmapping" fxmap)
-      (trie-min (fxmapping-trie fxmap))))
+  (assert-type 'fxmapping-min (fxmapping? fxmap))
+  (assert-fxmap-non-empty 'fxmapping-min fxmap)
+  (trie-min (fxmapping-trie fxmap)))
 
 (define (fxmapping-max fxmap)
-  (if (fxmapping-empty? fxmap)
-      (error "fxmapping-max: empty fxmapping" fxmap)
-      (trie-max (fxmapping-trie fxmap))))
+  (assert-type 'fxmapping-max (fxmapping? fxmap))
+  (assert-fxmap-non-empty 'fxmapping-max fxmap)
+  (trie-max (fxmapping-trie fxmap)))
 
 ;;;; Updaters
 
 (define fxmapping-adjoin/combinator
   (case-lambda
     ((fxmap combine key value)      ; one-assoc fast path
+     (assert-type 'fxmapping-adjoin/combinator (fxmapping? fxmap))
+     (assert-type 'fxmapping-adjoin/combinator (procedure? combine))
+     (assert-type 'fxmapping-adjoin/combinator (fixnum? key))
      (raw-fxmapping
       (trie-insert/combine (fxmapping-trie fxmap) key value combine)))
     ((fxmap combine . ps)
+     (assert-type 'fxmapping-adjoin/combinator (fxmapping? fxmap))
      (raw-fxmapping
-      (plist-fold (lambda (k v t)
+      (plist-fold 'fxmapping-adjoin/combinator
+                  (lambda (k v t)
+                    (assert-type 'fxmapping-adjoin/combinator
+                                 (fixnum? k))
                     (trie-insert/combine t k v combine))
                   (fxmapping-trie fxmap)
                   ps)))))
@@ -183,11 +240,17 @@
 (define fxmapping-adjoin
   (case-lambda
     ((fxmap key value)              ; one-assoc fast path
+     (assert-type 'fxmapping-adjoin (fxmapping? fxmap))
+     (assert-type 'fxmapping-adjoin (fixnum? key))
      (raw-fxmapping
       (trie-adjoin (fxmapping-trie fxmap) key value)))
     ((fxmap . ps)
+     (assert-type 'fxmapping-adjoin (fxmapping? fxmap))
      (raw-fxmapping
-      (plist-fold (lambda (k v t) (trie-adjoin t k v))
+      (plist-fold 'fxmapping-adjoin
+                  (lambda (k v t)
+                    (assert-type 'fxmapping-adjoin (fixnum? k))
+                    (trie-adjoin t k v))
                   (fxmapping-trie fxmap)
                   ps)))))
 
@@ -195,32 +258,38 @@
 (define fxmapping-set
   (case-lambda
     ((fxmap key value)      ; one-assoc fast path
+     (assert-type 'fxmapping-set (fxmapping? fxmap))
+     (assert-type 'fxmapping-set (fixnum? key))
      (raw-fxmapping
       (trie-insert (fxmapping-trie fxmap) key value)))
     ((fxmap . ps)
+     (assert-type 'fxmapping-set (fxmapping? fxmap))
      (raw-fxmapping
-      (plist-fold (lambda (k v t) (trie-insert t k v))
+      (plist-fold 'fxmapping-set
+                  (lambda (k v t)
+                    (assert-type 'fxmapping-set (fixnum? k))
+                    (trie-insert t k v))
                   (fxmapping-trie fxmap)
                   ps)))))
 
 (define (fxmapping-adjust fxmap key proc)
-  (assume (fxmapping? fxmap))
-  (assume (valid-integer? key))
-  (assume (procedure? proc))
+  (assert-type 'fxmapping-adjust (fxmapping? fxmap))
+  (assert-type 'fxmapping-adjust (fixnum? key))
+  (assert-type 'fxmapping-adjust (procedure? proc))
   (raw-fxmapping (trie-adjust (fxmapping-trie fxmap) key proc)))
 
 (define fxmapping-delete
   (case-lambda
     ((fxmap key)      ; fast path
-     (assume (fxmapping? fxmap))
-     (assume (valid-integer? key))
+     (assert-type 'fxmapping-delete (fxmapping? fxmap))
+     (assert-type 'fxmapping-delete (fixnum? key))
      (raw-fxmapping (trie-delete (fxmapping-trie fxmap) key)))
     ((fxmap . keys)
      (fxmapping-delete-all fxmap keys))))
 
 (define (fxmapping-delete-all fxmap keys)
-  (assume (fxmapping? fxmap))
-  (assume (or (pair? keys) (null? keys)))
+  (assert-type 'fxmapping-delete-all (fxmapping? fxmap))
+  (assert-type 'fxmapping-delete-all (pair-or-null? keys))
   (let ((key-map (fxmapping-unfold null?
                                    (lambda (ks) (values (car ks) #t))
                                    cdr
@@ -235,52 +304,58 @@
                        key
                        success
                        (lambda ()
-                         (error "fxmapping-update: key not found" key fxmap))))
+                         (abort
+                          (make-access-condition 'fxmapping-update
+                                                 "key not found"
+                                                 key)))))
     ((fxmap key success failure)
-     (assume (fxmapping? fxmap))
-     (assume (valid-integer? key))
-     (assume (procedure? success))
-     (assume (procedure? failure))
+     (assert-type 'fxmapping-update (fxmapping? fxmap))
+     (assert-type 'fxmapping-update (fixnum? key))
+     (assert-type 'fxmapping-update (procedure? success))
+     (assert-type 'fxmapping-update (procedure? failure))
      (trie-update (fxmapping-trie fxmap) key success failure raw-fxmapping))))
 
 (define (fxmapping-alter fxmap key failure success)
-  (assume (fxmapping? fxmap))
-  (assume (valid-integer? key))
-  (assume (procedure? failure))
-  (assume (procedure? success))
+  (assert-type 'fxmapping-alter (fxmapping? fxmap))
+  (assert-type 'fxmapping-alter (valid-integer? key))
+  (assert-type 'fxmapping-alter (procedure? failure))
+  (assert-type 'fxmapping-alter (procedure? success))
   (trie-alter (fxmapping-trie fxmap) key failure success raw-fxmapping))
 
 (define (fxmapping-delete-min fxmap)
+  (assert-type 'fxmapping-delete-min (fxmapping? fxmap))
+  (assert-fxmap-non-empty 'fxmapping-delete-min fxmap)
   (fxmapping-update-min fxmap
                         (lambda (_k _v _rep delete)
                           (delete))))
 
 (define (fxmapping-update-min fxmap success)
-  (assume (fxmapping? fxmap))
-  (assume (not (fxmapping-empty? fxmap)))
-  (assume (procedure? success))
+  (assert-type 'fxmapping-update-min (fxmapping? fxmap))
+  (assert-type 'fxmapping-update-min (procedure? success))
+  (assert-fxmap-non-empty 'fxmapping-update-min fxmap)
   (trie-update-min (fxmapping-trie fxmap) success raw-fxmapping))
 
 (define (fxmapping-pop-min fxmap)
-  (assume (fxmapping? fxmap))
-  (if (fxmapping-empty? fxmap)
-      (error "fxmapping-pop-min: empty fxmapping" fxmap)
-      (let-values (((k v trie) (trie-pop-min (fxmapping-trie fxmap))))
-        (values k v (raw-fxmapping trie)))))
+  (assert-type 'fxmapping-pop-min (fxmapping? fxmap))
+  (assert-fxmap-non-empty 'fxmapping-pop-min fxmap)
+  (let-values (((k v trie) (trie-pop-min (fxmapping-trie fxmap))))
+    (values k v (raw-fxmapping trie))))
 
 (define (fxmapping-delete-max fxmap)
+  (assert-type 'fxmapping-delete-max (fxmapping? fxmap))
+  (assert-fxmap-non-empty 'fxmapping-delete-max fxmap)
   (fxmapping-update-max fxmap
                         (lambda (_k _v _rep delete)
                           (delete))))
 
 (define (fxmapping-update-max fxmap success)
-  (assume (fxmapping? fxmap))
-  (assume (not (fxmapping-empty? fxmap)))
-  (assume (procedure? success))
+  (assert-type 'fxmapping-update-max (fxmapping? fxmap))
+  (assert-type 'fxmapping-update-max (not (fxmapping-empty? fxmap)))
+  (assert-type 'fxmapping-update-max (procedure? success))
   (trie-update-max (fxmapping-trie fxmap) success raw-fxmapping))
 
 (define (fxmapping-pop-max fxmap)
-  (assume (fxmapping? fxmap))
+  (assert-type 'fxmapping-pop-max (fxmapping? fxmap))
   (if (fxmapping-empty? fxmap)
       (error "fxmapping-pop-max: empty fxmapping" fxmap)
       (let-values (((k v trie) (trie-pop-max (fxmapping-trie fxmap))))
@@ -289,7 +364,7 @@
 ;;;; The whole fxmapping
 
 (define (fxmapping-size fxmap)
-  (assume (fxmapping? fxmap))
+  (assert-type 'fxmapping-size (fxmapping? fxmap))
   (trie-size (fxmapping-trie fxmap)))
 
 (define fxmapping-find
@@ -297,21 +372,21 @@
     ((pred fxmap failure)
      (fxmapping-find pred fxmap failure values))
     ((pred fxmap failure success)
-     (assume (procedure? pred))
-     (assume (fxmapping? fxmap))
-     (assume (procedure? failure))
-     (assume (procedure? success))
+     (assert-type 'fxmapping-find (procedure? pred))
+     (assert-type 'fxmapping-find (fxmapping? fxmap))
+     (assert-type 'fxmapping-find (procedure? failure))
+     (assert-type 'fxmapping-find (procedure? success))
      (trie-find pred (fxmapping-trie fxmap) failure success))))
 
 (define (fxmapping-count pred fxmap)
-  (assume (procedure? pred))
+  (assert-type 'fxmapping-count (procedure? pred))
   (fxmapping-fold (lambda (k v acc)
                     (if (pred k v) (+ 1 acc) acc))
                   0
                   fxmap))
 
 (define (fxmapping-any? pred fxmap)
-  (assume (procedure? pred))
+  (assert-type 'fxmapping-any? (procedure? pred))
   (call-with-current-continuation
    (lambda (return)
      (fxmapping-fold (lambda (k v _)
@@ -320,7 +395,7 @@
                      fxmap))))
 
 (define (fxmapping-every? pred fxmap)
-  (assume (procedure? pred))
+  (assert-type 'fxmapping-every? (procedure? pred))
   (call-with-current-continuation
    (lambda (return)
      (fxmapping-fold (lambda (k v _)
@@ -334,14 +409,14 @@
 ;; the same key.
 ;; This is *not* the same as SRFI 146's mapping-map.
 (define (fxmapping-map proc fxmap)
-  (assume (procedure? proc))
-  (assume (fxmapping? fxmap))
+  (assert-type 'fxmapping-map (procedure? proc))
+  (assert-type 'fxmapping-map (fxmapping? fxmap))
   (raw-fxmapping (trie-map proc (fxmapping-trie fxmap))))
 
 (define unspecified void)
 
 (define (fxmapping-for-each proc fxmap)
-  (assume (procedure? proc))
+  (assert-type 'fxmapping-for-each (procedure? proc))
   (fxmapping-fold (lambda (k v _)
                     (proc k v)
                     (unspecified))
@@ -349,8 +424,8 @@
                   fxmap))
 
 (define (fxmapping-fold proc nil fxmap)
-  (assume (procedure? proc))
-  (assume (fxmapping? fxmap))
+  (assert-type 'fxmapping-fold (procedure? proc))
+  (assert-type 'fxmapping-fold (fxmapping? fxmap))
   (let ((trie (fxmapping-trie fxmap)))
     (tmatch trie
       ((branch ? ,m ,l ,r) (guard (negative? m))
@@ -360,8 +435,8 @@
       (else (trie-fold-left proc nil trie)))))
 
 (define (fxmapping-fold-right proc nil fxmap)
-  (assume (procedure? proc))
-  (assume (fxmapping? fxmap))
+  (assert-type 'fxmapping-fold-right (procedure? proc))
+  (assert-type 'fxmapping-fold-right (fxmapping? fxmap))
   (let ((trie (fxmapping-trie fxmap)))
     (tmatch trie
       ((branch ? ,m ,l ,r) (guard (negative? m))
@@ -371,23 +446,23 @@
       (else (trie-fold-right proc nil trie)))))
 
 (define (fxmapping-map->list proc fxmap)
-  (assume (procedure? proc))
+  (assert-type 'fxmapping-map->list (procedure? proc))
   (fxmapping-fold-right (lambda (k v us)
                           (cons (proc k v) us))
                         '()
                         fxmap))
 
 (define (fxmapping-filter pred fxmap)
-  (assume (procedure? pred))
-  (assume (fxmapping? fxmap))
+  (assert-type 'fxmapping-filter (procedure? pred))
+  (assert-type 'fxmapping-filter (fxmapping? fxmap))
   (raw-fxmapping (trie-filter pred (fxmapping-trie fxmap))))
 
 (define (fxmapping-remove pred fxmap)
   (fxmapping-filter (lambda (k v) (not (pred k v))) fxmap))
 
 (define (fxmapping-partition pred fxmap)
-  (assume (procedure? pred))
-  (assume (fxmapping? fxmap))
+  (assert-type 'fxmapping-partition (procedure? pred))
+  (assert-type 'fxmapping-partition (fxmapping? fxmap))
   (let-values (((tin tout)
                 (trie-partition pred (fxmapping-trie fxmap))))
     (values (raw-fxmapping tin) (raw-fxmapping tout))))
@@ -411,7 +486,7 @@
   (fxmapping-fold-right (lambda (_ v vs) (cons v vs)) '() fxmap))
 
 (define (fxmapping->generator fxmap)
-  (assume (fxmapping? fxmap))
+  (assert-type 'fxmapping->generator (fxmapping? fxmap))
   (make-coroutine-generator
    (lambda (yield)
      (fxmapping-fold (lambda (k v _) (yield (cons k v)))
@@ -419,7 +494,7 @@
                      fxmap))))
 
 (define (fxmapping->decreasing-generator fxmap)
-  (assume (fxmapping? fxmap))
+  (assert-type 'fxmapping->decreasing-generator (fxmapping? fxmap))
   (make-coroutine-generator
    (lambda (yield)
      (fxmapping-fold-right (lambda (k v _) (yield (cons k v)))
@@ -429,10 +504,10 @@
 ;;;; Comparison
 
 (define (fxmapping=? comp fxmap1 fxmap2 . imaps)
-  (assume (comparator? comp))
-  (assume (fxmapping? fxmap1))
+  (assert-type 'fxmapping=? (comparator? comp))
+  (assert-type 'fxmapping=? (fxmapping? fxmap1))
   (let ((fxmap-eq1 (lambda (fxmap)
-                     (assume (fxmapping? fxmap))
+                     (assert-type 'fxmapping=? (fxmapping? fxmap))
                      (or (eqv? fxmap1 fxmap)
                          (trie=? comp
                                  (fxmapping-trie fxmap1)
@@ -442,9 +517,9 @@
              (every fxmap-eq1 imaps)))))
 
 (define (fxmapping<? comp fxmap1 fxmap2 . imaps)
-  (assume (comparator? comp))
-  (assume (fxmapping? fxmap1))
-  (assume (fxmapping? fxmap2))
+  (assert-type 'fxmapping<? (comparator? comp))
+  (assert-type 'fxmapping<? (fxmapping? fxmap1))
+  (assert-type 'fxmapping<? (fxmapping? fxmap2))
   (let lp ((t1 (fxmapping-trie fxmap1))
            (t2 (fxmapping-trie fxmap2))
            (imaps imaps))
@@ -454,9 +529,9 @@
            ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
 
 (define (fxmapping>? comp fxmap1 fxmap2 . imaps)
-  (assume (comparator? comp))
-  (assume (fxmapping? fxmap1))
-  (assume (fxmapping? fxmap2))
+  (assert-type 'fxmapping>? (comparator? comp))
+  (assert-type 'fxmapping>? (fxmapping? fxmap1))
+  (assert-type 'fxmapping>? (fxmapping? fxmap2))
   (let lp ((t1 (fxmapping-trie fxmap1))
            (t2 (fxmapping-trie fxmap2))
            (imaps imaps))
@@ -466,9 +541,9 @@
            ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
 
 (define (fxmapping<=? comp fxmap1 fxmap2 . imaps)
-  (assume (comparator? comp))
-  (assume (fxmapping? fxmap1))
-  (assume (fxmapping? fxmap2))
+  (assert-type 'fxmapping<=? (comparator? comp))
+  (assert-type 'fxmapping<=? (fxmapping? fxmap1))
+  (assert-type 'fxmapping<=? (fxmapping? fxmap2))
   (let lp ((t1 (fxmapping-trie fxmap1))
            (t2 (fxmapping-trie fxmap2))
            (imaps imaps))
@@ -478,9 +553,9 @@
            ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
 
 (define (fxmapping>=? comp fxmap1 fxmap2 . imaps)
-  (assume (comparator? comp))
-  (assume (fxmapping? fxmap1))
-  (assume (fxmapping? fxmap2))
+  (assert-type 'fxmapping>=? (comparator? comp))
+  (assert-type 'fxmapping>=? (fxmapping? fxmap1))
+  (assert-type 'fxmapping>=? (fxmapping? fxmap2))
   (let lp ((t1 (fxmapping-trie fxmap1))
            (t2 (fxmapping-trie fxmap2))
            (imaps imaps))
@@ -500,43 +575,43 @@
 (define fxmapping-difference
   (case-lambda
     ((fxmap1 fxmap2)
-     (assume (fxmapping? fxmap1))
-     (assume (fxmapping? fxmap2))
+     (assert-type 'fxmapping-difference (fxmapping? fxmap1))
+     (assert-type 'fxmapping-difference (fxmapping? fxmap2))
      (raw-fxmapping
       (trie-difference (fxmapping-trie fxmap1)
                        (fxmapping-trie fxmap2))))
     ((fxmap . rest)
-     (assume (fxmapping? fxmap))
-     (assume (pair? rest))
+     (assert-type 'fxmapping-difference (fxmapping? fxmap))
+     (assert-type 'fxmapping-difference (pair? rest))
      (raw-fxmapping
       (trie-difference (fxmapping-trie fxmap)
                        (fxmapping-trie
                         (apply fxmapping-union rest)))))))
 
 (define (fxmapping-xor fxmap1 fxmap2)
-  (assume (fxmapping? fxmap1))
-  (assume (fxmapping? fxmap2))
+  (assert-type 'fxmapping-xor (fxmapping? fxmap1))
+  (assert-type 'fxmapping-xor (fxmapping? fxmap2))
   (raw-fxmapping
    (trie-xor (fxmapping-trie fxmap1) (fxmapping-trie fxmap2))))
 
 (define (fxmapping-union/combinator proc fxmap . rest)
-  (assume (procedure? proc))
-  (assume (fxmapping? fxmap))
-  (assume (pair? rest))
+  (assert-type 'fxmapping-union/combinator (procedure? proc))
+  (assert-type 'fxmapping-union/combinator (fxmapping? fxmap))
+  (assert-type 'fxmapping-union/combinator (pair? rest))
   (raw-fxmapping
    (fold (lambda (im t)
-           (assume (fxmapping? im))
+           (assert-type 'fxmapping-union/combinator (fxmapping? im))
            (trie-merge proc t (fxmapping-trie im)))
          (fxmapping-trie fxmap)
          rest)))
 
 (define (fxmapping-intersection/combinator proc fxmap . rest)
-  (assume (procedure? proc))
-  (assume (fxmapping? fxmap))
-  (assume (pair? rest))
+  (assert-type 'fxmapping-intersection/combinator (procedure? proc))
+  (assert-type 'fxmapping-intersection/combinator (fxmapping? fxmap))
+  (assert-type 'fxmapping-intersection/combinator (pair? rest))
   (raw-fxmapping
    (fold (lambda (im t)
-           (assume (fxmapping? im))
+           (assert-type 'fxmapping-intersection/combinator (fxmapping? im))
            (trie-intersection proc t (fxmapping-trie im)))
          (fxmapping-trie fxmap)
          rest)))
@@ -550,60 +625,60 @@
                  (lambda (v) (fxmapping key v))))
 
 (define (fxmapping-open-interval fxmap low high)
-  (assume (fxmapping? fxmap))
-  (assume (valid-integer? low))
-  (assume (valid-integer? high))
-  (assume (fx>=? high low))
+  (assert-type 'fxmapping-open-interval (fxmapping? fxmap))
+  (assert-type 'fxmapping-open-interval (valid-integer? low))
+  (assert-type 'fxmapping-open-interval (valid-integer? high))
+  (assert-type 'fxmapping-open-interval (fx>=? high low))
   (raw-fxmapping
    (subtrie-interval (fxmapping-trie fxmap) low high #f #f)))
 
 (define (fxmapping-closed-interval fxmap low high)
-  (assume (fxmapping? fxmap))
-  (assume (valid-integer? low))
-  (assume (valid-integer? high))
-  (assume (fx>=? high low))
+  (assert-type 'fxmapping-closed-interval (fxmapping? fxmap))
+  (assert-type 'fxmapping-closed-interval (valid-integer? low))
+  (assert-type 'fxmapping-closed-interval (valid-integer? high))
+  (assert-type 'fxmapping-closed-interval (fx>=? high low))
   (raw-fxmapping
    (subtrie-interval (fxmapping-trie fxmap) low high #t #t)))
 
 (define (fxmapping-open-closed-interval fxmap low high)
-  (assume (fxmapping? fxmap))
-  (assume (valid-integer? low))
-  (assume (valid-integer? high))
-  (assume (fx>=? high low))
+  (assert-type 'fxmapping-open-closed-interval (fxmapping? fxmap))
+  (assert-type 'fxmapping-open-closed-interval (valid-integer? low))
+  (assert-type 'fxmapping-open-closed-interval (valid-integer? high))
+  (assert-type 'fxmapping-open-closed-interval (fx>=? high low))
   (raw-fxmapping
    (subtrie-interval (fxmapping-trie fxmap) low high #f #t)))
 
 (define (fxmapping-closed-open-interval fxmap low high)
-  (assume (fxmapping? fxmap))
-  (assume (valid-integer? low))
-  (assume (valid-integer? high))
-  (assume (fx>=? high low))
+  (assert-type 'fxmapping-closed-open-interval (fxmapping? fxmap))
+  (assert-type 'fxmapping-closed-open-interval (valid-integer? low))
+  (assert-type 'fxmapping-closed-open-interval (valid-integer? high))
+  (assert-type 'fxmapping-closed-open-interval (fx>=? high low))
   (raw-fxmapping
    (subtrie-interval (fxmapping-trie fxmap) low high #t #f)))
 
 (define (fxsubmapping< fxmap key)
-  (assume (fxmapping? fxmap))
-  (assume (valid-integer? key))
+  (assert-type 'fxsubmapping< (fxmapping? fxmap))
+  (assert-type 'fxsubmapping< (valid-integer? key))
   (raw-fxmapping (subtrie< (fxmapping-trie fxmap) key #f)))
 
 (define (fxsubmapping<= fxmap key)
-  (assume (fxmapping? fxmap))
-  (assume (valid-integer? key))
+  (assert-type 'fxsubmapping<= (fxmapping? fxmap))
+  (assert-type 'fxsubmapping<= (valid-integer? key))
   (raw-fxmapping (subtrie< (fxmapping-trie fxmap) key #t)))
 
 (define (fxsubmapping> fxmap key)
-  (assume (fxmapping? fxmap))
-  (assume (valid-integer? key))
+  (assert-type 'fxsubmapping> (fxmapping? fxmap))
+  (assert-type 'fxsubmapping> (valid-integer? key))
   (raw-fxmapping (subtrie> (fxmapping-trie fxmap) key #f)))
 
 (define (fxsubmapping>= fxmap key)
-  (assume (fxmapping? fxmap))
-  (assume (valid-integer? key))
+  (assert-type 'fxsubmapping>= (fxmapping? fxmap))
+  (assert-type 'fxsubmapping>= (valid-integer? key))
   (raw-fxmapping (subtrie> (fxmapping-trie fxmap) key #t)))
 
 (define (fxmapping-split fxmap k)
-  (assume (fxmapping? fxmap))
-  (assume (integer? k))
+  (assert-type 'fxmapping-split (fxmapping? fxmap))
+  (assert-type 'fxmapping-split (integer? k))
   (let-values (((trie-low trie-high)
                 (trie-split (fxmapping-trie fxmap) k)))
     (values (raw-fxmapping trie-low) (raw-fxmapping trie-high))))
@@ -611,6 +686,6 @@
 ;;;; fxmappings as relations
 
 (define (fxmapping-relation-map proc fxmap)
-  (assume (procedure? proc))
-  (assume (fxmapping? fxmap))
+  (assert-type 'fxmapping-relation-map (procedure? proc))
+  (assert-type 'fxmapping-relation-map (fxmapping? fxmap))
   (raw-fxmapping (trie-relation-map proc (fxmapping-trie fxmap))))
