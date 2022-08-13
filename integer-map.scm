@@ -51,6 +51,7 @@
           (except (chicken base) constantly assert)
           (chicken condition)
           (chicken platform)
+          (chicken type)
           (only (srfi 1) fold every)
           (only (srfi 128) comparator? =?)
           (srfi 143)
