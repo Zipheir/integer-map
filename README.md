@@ -1,9 +1,10 @@
 # integer-map
 
-This is a Scheme library providing integer maps.  It should be
-portable to R7RS Schemes, and may be easily adapted to others.
+This is the CHICKEN version of the SRFI 224 Scheme library providing
+fixnum (integer) maps.  For the (more) portable version, see the
+[SRFI repo](https://github.com/scheme-requests-for-implementation/srfi-224).
 
-Integer maps (imappings) are implemented using the big-endian
+Fixnum maps (fxmappings) are implemented using the big-endian
 radix (Patricia) tree structure described by Chris Okasaki and
 Andrew Gill in
 ["Fast Mergeable Integer Maps"](http://ittc.ku.edu/~andygill/papers/IntMap98.pdf).
