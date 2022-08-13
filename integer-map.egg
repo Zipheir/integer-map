@@ -1,7 +1,7 @@
 ((author "Wolfgang Corcoran-Mathe")
  (maintainer "Wolfgang Corcoran-Mathe")
  (synopsis "SRFI 224 integer mappings")
- (version "1.0.2")
+ (version "1.0.3")
  (category data)
  (dependencies srfi-1 srfi-128 srfi-143 srfi-158)
  (test-dependencies test)
