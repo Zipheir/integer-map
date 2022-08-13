@@ -104,7 +104,9 @@
 (define (fxmapping . args)
   (raw-fxmapping
     (plist-fold 'fxmapping
-                (lambda (k v trie) (trie-adjoin trie k v))
+                (lambda (k v trie)
+                  (assert-type 'fxmapping (fixnum? k) k)
+                  (trie-adjoin trie k v))
                 the-empty-trie
                 args)))
 
