@@ -34,8 +34,6 @@
   (left branch-left)
   (right branch-right))
 
-(define (valid-integer? x) (fixnum? x))
-
 ;; Zero the bits of k at and below (BE) the set bit of m.
 (define (mask k m)
   (if (fx=? m fx-least)
