@@ -75,7 +75,7 @@
      (unless expr
        (abort
         (make-type-condition loc
-                             "assertion violation: type check failed"
+                             "type check failed"
                              'expr
                              . args))))))
 
