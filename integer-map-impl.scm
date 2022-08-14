@@ -572,9 +572,8 @@
 
 ;;;; Comparison
 
-;;; Comparators have type *, because types can't be exported. :-(
-
-(: fxmapping=? (* fxmap-t fxmap-t #!rest fxmap-t -> boolean))
+(: fxmapping=?
+   ((struct comparator) fxmap-t fxmap-t #!rest fxmap-t -> boolean))
 (define (fxmapping=? comp fxmap1 fxmap2 . imaps)
   (assert-type 'fxmapping=? (comparator? comp))
   (assert-type 'fxmapping=? (fxmapping? fxmap1))
@@ -588,7 +587,8 @@
          (or (null? imaps)
              (every fxmap-eq1 imaps)))))
 
-(: fxmapping<? (* fxmap-t fxmap-t #!rest fxmap-t --> boolean))
+(: fxmapping<?
+   ((struct comparator) fxmap-t fxmap-t #!rest fxmap-t --> boolean))
 (define (fxmapping<? comp fxmap1 fxmap2 . imaps)
   (assert-type 'fxmapping<? (comparator? comp))
   (assert-type 'fxmapping<? (fxmapping? fxmap1))
@@ -601,7 +601,8 @@
            (() #t)
            ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
 
-(: fxmapping>? (* fxmap-t fxmap-t #!rest fxmap-t --> boolean))
+(: fxmapping>?
+   ((struct comparator) fxmap-t fxmap-t #!rest fxmap-t --> boolean))
 (define (fxmapping>? comp fxmap1 fxmap2 . imaps)
   (assert-type 'fxmapping>? (comparator? comp))
   (assert-type 'fxmapping>? (fxmapping? fxmap1))
@@ -612,9 +613,10 @@
     (and (trie-proper-subset? comp t2 t1)
          (pmatch imaps
            (() #t)
-           ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
+           ((,m . ,imaps*)) (lp t2 (fxmapping-trie m) imaps*))))))
 
-(: fxmapping<=? (* fxmap-t fxmap-t #!rest fxmap-t --> boolean))
+(: fxmapping<=?
+   ((struct comparator) fxmap-t fxmap-t #!rest fxmap-t --> boolean))
 (define (fxmapping<=? comp fxmap1 fxmap2 . imaps)
   (assert-type 'fxmapping<=? (comparator? comp))
   (assert-type 'fxmapping<=? (fxmapping? fxmap1))
@@ -627,7 +629,8 @@
            (() #t)
            ((,m . ,imaps*) (lp t2 (fxmapping-trie m) imaps*))))))
 
-(: fxmapping>=? (* fxmap-t fxmap-t #!rest fxmap-t --> boolean))
+(: fxmapping>=?
+   ((struct comparator) fxmap-t fxmap-t #!rest fxmap-t --> boolean))
 (define (fxmapping>=? comp fxmap1 fxmap2 . imaps)
   (assert-type 'fxmapping>=? (comparator? comp))
   (assert-type 'fxmapping>=? (fxmapping? fxmap1))
